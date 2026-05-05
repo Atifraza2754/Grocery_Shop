@@ -1,0 +1,131 @@
+/* ============================================================
+   Grocery Shop — Admin Panel custom styles
+   Loaded via Filament render hook (HEAD_END).
+   Goal: visible sidebar/topbar borders, clean structure,
+   remove Filament-y feel.
+   ============================================================ */
+
+/* --- Sidebar: clear right border + slightly tinted bg --- */
+.fi-sidebar {
+    border-right: 1px solid rgb(229, 231, 235) !important;   /* gray-200 */
+    background-color: rgb(249, 250, 251) !important;          /* gray-50  */
+}
+
+.dark .fi-sidebar {
+    border-right-color: rgb(55, 65, 81) !important;           /* gray-700 */
+    background-color: rgb(17, 24, 39) !important;             /* gray-900 */
+}
+
+/* Sidebar header (logo area) divider */
+.fi-sidebar-header {
+    border-bottom: 1px solid rgb(229, 231, 235) !important;
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+}
+.dark .fi-sidebar-header {
+    border-bottom-color: rgb(55, 65, 81) !important;
+}
+
+/* Spacing between nav groups */
+.fi-sidebar-nav {
+    padding: 0.75rem 0.5rem !important;
+}
+.fi-sidebar-nav-groups {
+    gap: 1rem !important;
+}
+
+/* Nav group label — small, uppercased, like a section header */
+.fi-sidebar-group-label {
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+    font-size: 0.7rem !important;
+    font-weight: 700 !important;
+    color: rgb(107, 114, 128) !important;                    /* gray-500 */
+    padding: 0.25rem 0.75rem !important;
+}
+.dark .fi-sidebar-group-label {
+    color: rgb(156, 163, 175) !important;                    /* gray-400 */
+}
+
+/* Nav items: subtle hover, clear active state */
+.fi-sidebar-item-button {
+    border-radius: 0.5rem !important;
+    transition: background-color 0.15s ease;
+}
+.fi-sidebar-item-active .fi-sidebar-item-button {
+    background-color: rgb(220, 252, 231) !important;          /* green-100 */
+    color: rgb(22, 101, 52) !important;                       /* green-800 */
+}
+.dark .fi-sidebar-item-active .fi-sidebar-item-button {
+    background-color: rgba(34, 197, 94, 0.15) !important;
+    color: rgb(134, 239, 172) !important;                     /* green-300 */
+}
+
+/* --- Topbar: bottom border --- */
+.fi-topbar {
+    border-bottom: 1px solid rgb(229, 231, 235) !important;
+    background-color: #ffffff !important;
+}
+.dark .fi-topbar {
+    border-bottom-color: rgb(55, 65, 81) !important;
+    background-color: rgb(17, 24, 39) !important;
+}
+
+/* Topbar inner: a bit more breathing room */
+.fi-topbar > nav {
+    padding-top: 0.85rem !important;
+    padding-bottom: 0.85rem !important;
+}
+
+/* --- Main content area: light gray background to separate from cards --- */
+.fi-main {
+    background-color: rgb(249, 250, 251) !important;          /* gray-50 */
+}
+.dark .fi-main {
+    background-color: rgb(11, 17, 30) !important;
+}
+
+/* Cards: cleaner border + subtle shadow */
+.fi-section,
+.fi-wi-stats-overview-stat,
+.fi-ta-ctn,
+.fi-fo-component-ctn {
+    border: 1px solid rgb(229, 231, 235) !important;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03) !important;
+}
+.dark .fi-section,
+.dark .fi-wi-stats-overview-stat,
+.dark .fi-ta-ctn,
+.dark .fi-fo-component-ctn {
+    border-color: rgb(55, 65, 81) !important;
+}
+
+/* --- Custom footer (Grocery Shop branded) --- */
+.gs-footer {
+    text-align: center;
+    padding: 1rem;
+    font-size: 0.75rem;
+    color: rgb(107, 114, 128);
+    border-top: 1px solid rgb(229, 231, 235);
+    background-color: #ffffff;
+}
+.dark .gs-footer {
+    color: rgb(156, 163, 175);
+    border-top-color: rgb(55, 65, 81);
+    background-color: rgb(17, 24, 39);
+}
+
+/* --- Hide any "Powered by Filament" footer Filament might inject --- */
+.fi-layout > footer:not(:has(.gs-footer)) {
+    display: none !important;
+}
+
+/* --- Brand text in sidebar header (slightly tighter) --- */
+.fi-sidebar-header .fi-logo {
+    font-weight: 700 !important;
+    letter-spacing: -0.01em !important;
+    color: rgb(22, 101, 52) !important;                       /* green-800 */
+}
+.dark .fi-sidebar-header .fi-logo {
+    color: rgb(134, 239, 172) !important;                     /* green-300 */
+}
