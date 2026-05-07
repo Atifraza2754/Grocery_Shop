@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Site;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\SendOrderWhatsApp;
 use App\Models\Ambassador;
 use App\Models\Area;
 use App\Models\Customer;
@@ -29,10 +30,11 @@ class CheckoutController extends Controller
         // Pre-fill from session if user comes back
         $prefill = session('checkout_prefill', []);
 
-        $items  = $this->cart->items();
-        $totals = $this->cart->totals(null);
+        $items         = $this->cart->items();
+        $groceryItems  = $this->cart->groceryItems();
+        $totals        = $this->cart->totals(null);
 
-        return view('site.checkout', compact('areas', 'items', 'totals', 'prefill'));
+        return view('site.checkout', compact('areas', 'items', 'groceryItems', 'totals', 'prefill'));
     }
 
     public function place(Request $request)
@@ -55,12 +57,13 @@ class CheckoutController extends Controller
         // Remember the prefill for next visit
         session(['checkout_prefill' => $data]);
 
-        $items   = $this->cart->items();
-        $coupon  = $this->cart->coupon();
-        $totals  = $this->cart->totals($data['area_id']);
+        $items         = $this->cart->items();
+        $groceryItems  = $this->cart->groceryItems();
+        $coupon        = $this->cart->coupon();
+        $totals        = $this->cart->totals($data['area_id']);
 
         try {
-            $order = DB::transaction(function () use ($data, $items, $coupon) {
+            $order = DB::transaction(function () use ($data, $items, $groceryItems, $coupon) {
                 // Find or create customer by phone
                 $customer = Customer::findOrCreateByPhone($data['phone'], [
                     'name'    => $data['name'],
@@ -103,15 +106,29 @@ class CheckoutController extends Controller
                     'customer_note'    => $data['customer_note'] ?? null,
                 ]);
 
-                // Add line items (snapshot)
+                // Add regular line items (snapshot)
                 foreach ($items as $row) {
                     $order->items()->create([
-                        'product_id' => $row->product->id,
-                        'sku'        => $row->product->sku,
-                        'name'       => $row->product->name,
-                        'unit'       => $row->product->unit,
-                        'price'      => $row->price,
-                        'qty'        => $row->qty,
+                        'product_id'         => $row->product->id,
+                        'is_grocery_request' => false,
+                        'sku'                => $row->product->sku,
+                        'name'               => $row->product->name,
+                        'unit'               => $row->product->unit,
+                        'price'              => $row->price,
+                        'qty'                => $row->qty,
+                    ]);
+                }
+
+                // Add grocery items — flagged, no price, admin will set later
+                foreach ($groceryItems as $g) {
+                    $order->items()->create([
+                        'product_id'         => null,
+                        'is_grocery_request' => true,
+                        'sku'                => null,
+                        'name'               => $g['name'],
+                        'unit'               => $g['unit'] ?? 'piece',
+                        'price'              => 0,
+                        'qty'                => $g['qty'] ?? 1,
                     ]);
                 }
 
@@ -128,6 +145,18 @@ class CheckoutController extends Controller
         // Clean up
         $this->cart->clear();
         session()->forget('checkout_prefill');
+
+        // Fire WhatsApp notifications (admin + customer) with the configured delay.
+        // Falls back to logging if creds not set, never blocks order placement.
+        $delay = (int) config('services.whatsapp.send_delay_sec', 5);
+        try {
+            SendOrderWhatsApp::dispatch($order->id, 'admin')
+                ->delay(now()->addSeconds($delay));
+            SendOrderWhatsApp::dispatch($order->id, 'customer')
+                ->delay(now()->addSeconds($delay));
+        } catch (\Throwable $e) {
+            \Log::warning('Could not dispatch WhatsApp jobs: ' . $e->getMessage());
+        }
 
         return redirect()->route('site.order.show', ['orderNo' => $order->order_no]);
     }

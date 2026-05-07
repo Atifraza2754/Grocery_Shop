@@ -3,8 +3,11 @@
 @section('title', 'Checkout')
 
 @push('styles')
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
     .gs-card { background:#fff; border:1px solid var(--gs-border); border-radius:14px; }
+    #pickerMap { height: 280px; border-radius: 10px; margin-top: .5rem; border: 1px solid var(--gs-border); }
+    #pickerMap.hidden { display: none; }
     .form-label { font-weight: 600; color: var(--gs-text); margin-bottom: 4px; font-size: .92rem; }
     .form-control, .form-select {
         border-radius: 10px; border: 1.5px solid #d0d7de; padding: 10px 12px;
@@ -115,10 +118,18 @@
                             @error('address')<div class="small text-danger mt-1">{{ $message }}</div>@enderror
                         </div>
                         <div class="col-12">
-                            <button type="button" class="btn btn-outline-gs w-100" id="locBtn">
-                                <i class="fa-solid fa-location-crosshairs me-1"></i>
-                                <span id="locBtnText">Use my live location (optional)</span>
-                            </button>
+                            <div class="d-flex flex-wrap gap-2">
+                                <button type="button" class="btn btn-outline-gs flex-grow-1" id="locBtn">
+                                    <i class="fa-solid fa-location-crosshairs me-1"></i>
+                                    <span id="locBtnText">Use my live location</span>
+                                </button>
+                                <button type="button" class="btn btn-outline-gs flex-grow-1" id="mapBtn">
+                                    <i class="fa-solid fa-map-location-dot me-1"></i>
+                                    <span id="mapBtnText">Pick on map</span>
+                                </button>
+                            </div>
+                            <div id="pickerMap" class="hidden"></div>
+                            <div class="text-muted small mt-1" id="locStatus"></div>
                             <input type="hidden" name="lat" id="latInput" value="{{ old('lat', $prefill['lat'] ?? '') }}">
                             <input type="hidden" name="lng" id="lngInput" value="{{ old('lng', $prefill['lng'] ?? '') }}">
                         </div>
@@ -157,6 +168,30 @@
             <div class="col-lg-5">
                 <div class="gs-card p-4" style="position: sticky; top: 90px;">
                     <h5 class="mb-3" style="font-weight: 700;">Order Summary</h5>
+
+                    {{-- Grocery items (admin will set price) --}}
+                    @if (count($groceryItems ?? []))
+                        <div class="mb-3" style="background:#fff8e1;border:1px solid #ffe082;border-radius:10px;padding:.75rem;">
+                            <div class="fw-semibold mb-1" style="color:#b27300;">
+                                <i class="fa-solid fa-pen-to-square me-1"></i>Custom grocery items
+                            </div>
+                            <div class="text-muted small mb-2">
+                                Final price will be confirmed by admin via WhatsApp.
+                            </div>
+                            @foreach ($groceryItems as $g)
+                                <div class="item-line">
+                                    <div class="item-thumb">
+                                        <i class="fa-solid fa-pen-to-square" style="color:#b27300;"></i>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <div class="fw-semibold">{{ $g['name'] }}</div>
+                                        <div class="text-muted small">{{ $g['qty'] }} {{ $g['unit'] }}</div>
+                                    </div>
+                                    <div class="text-muted small">TBD</div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
 
                     {{-- Items --}}
                     <div class="mb-3">
@@ -219,6 +254,7 @@
 @endsection
 
 @push('scripts')
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function () {
     const subtotal = {{ $totals['subtotal'] }};
@@ -238,6 +274,17 @@
     areaSelect.addEventListener('change', recalc);
     recalc();
 
+    const latInput = document.getElementById('latInput');
+    const lngInput = document.getElementById('lngInput');
+    const status   = document.getElementById('locStatus');
+
+    function setLatLng(lat, lng, label) {
+        latInput.value = (+lat).toFixed(7);
+        lngInput.value = (+lng).toFixed(7);
+        status.innerHTML = '<i class="fa-solid fa-check text-success"></i> ' + label
+            + ' (' + lat.toFixed(5) + ', ' + lng.toFixed(5) + ')';
+    }
+
     /* Live location */
     document.getElementById('locBtn').addEventListener('click', () => {
         const txt = document.getElementById('locBtnText');
@@ -245,13 +292,60 @@
         txt.textContent = 'Getting location...';
         navigator.geolocation.getCurrentPosition(
             (pos) => {
-                document.getElementById('latInput').value = pos.coords.latitude.toFixed(7);
-                document.getElementById('lngInput').value = pos.coords.longitude.toFixed(7);
-                txt.textContent = '✓ Location captured';
+                setLatLng(pos.coords.latitude, pos.coords.longitude, 'Live location');
+                txt.textContent = '✓ Live location set';
+                if (mapInstance) {
+                    mapInstance.setView([pos.coords.latitude, pos.coords.longitude], 15);
+                    if (marker) marker.remove();
+                    marker = L.marker([pos.coords.latitude, pos.coords.longitude]).addTo(mapInstance);
+                }
                 window.GS.toast('Location captured');
             },
             (err) => { txt.textContent = 'Could not get location'; }
         );
+    });
+
+    /* Map picker (Leaflet) */
+    let mapInstance = null;
+    let marker = null;
+
+    document.getElementById('mapBtn').addEventListener('click', () => {
+        const mapEl = document.getElementById('pickerMap');
+        const txt   = document.getElementById('mapBtnText');
+
+        if (mapEl.classList.contains('hidden')) {
+            mapEl.classList.remove('hidden');
+            txt.textContent = 'Hide map';
+
+            if (!mapInstance) {
+                // Default centre: Karachi
+                let startLat = parseFloat(latInput.value || '24.8607');
+                let startLng = parseFloat(lngInput.value || '67.0011');
+                mapInstance = L.map('pickerMap').setView([startLat, startLng], 13);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; OpenStreetMap',
+                    maxZoom: 19,
+                }).addTo(mapInstance);
+
+                if (latInput.value && lngInput.value) {
+                    marker = L.marker([startLat, startLng]).addTo(mapInstance);
+                }
+
+                mapInstance.on('click', (e) => {
+                    if (marker) marker.remove();
+                    marker = L.marker(e.latlng).addTo(mapInstance);
+                    setLatLng(e.latlng.lat, e.latlng.lng, 'Picked on map');
+                });
+
+                // Fix sizing inside hidden container
+                setTimeout(() => mapInstance.invalidateSize(), 100);
+            } else {
+                setTimeout(() => mapInstance.invalidateSize(), 100);
+            }
+        } else {
+            mapEl.classList.add('hidden');
+            txt.textContent = 'Pick on map';
+        }
     });
 
     /* Disable submit on click */

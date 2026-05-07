@@ -35,4 +35,14 @@ return [
         ],
     ],
 
+    'whatsapp' => [
+        'token'           => env('WHATSAPP_TOKEN'),
+        'phone_id'        => env('WHATSAPP_PHONE_ID'),
+        'admin_phone'     => env('WHATSAPP_ADMIN_PHONE'),
+        'api_version'     => env('WHATSAPP_API_VERSION', 'v20.0'),
+        'default_country' => env('WHATSAPP_DEFAULT_COUNTRY', '92'),
+        // Delay before dispatching after order create (per spec)
+        'send_delay_sec'  => (int) env('WHATSAPP_SEND_DELAY_SEC', 5),
+    ],
+
 ];

@@ -69,7 +69,7 @@
         <div class="alert alert-danger">{{ session('error') }}</div>
     @endif
 
-    @if (count($items) === 0)
+    @if (count($items) === 0 && count($groceryItems ?? []) === 0)
         <div class="cart-card empty-cart">
             <i class="fa-solid fa-basket-shopping"></i>
             <h5>Your cart is empty</h5>
@@ -83,6 +83,40 @@
 
             {{-- ITEMS --}}
             <div class="col-lg-8">
+                @if (count($groceryItems ?? []))
+                    <div class="cart-card mb-3" style="border-left: 4px solid #f59e0b;">
+                        <div class="px-3 pt-3 pb-2 d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-0" style="font-weight: 700;">
+                                    <i class="fa-solid fa-pen-to-square me-1" style="color:#b27300;"></i>
+                                    Custom grocery items
+                                </h6>
+                                <div class="text-muted small">Final price will be confirmed by admin.</div>
+                            </div>
+                            <span class="badge" style="background:#fff8e1;color:#b27300;">Needs pricing</span>
+                        </div>
+                        @foreach ($groceryItems as $g)
+                            <div class="cart-row" data-grocery-id="{{ $g['id'] }}">
+                                <div class="cart-thumb">
+                                    <i class="fa-solid fa-pen-to-square" style="color:#b27300;"></i>
+                                </div>
+                                <div class="cart-info">
+                                    <div class="cart-name">{{ $g['name'] }}</div>
+                                    <div class="cart-meta">{{ $g['qty'] }} {{ $g['unit'] }}</div>
+                                </div>
+                                <button class="btn btn-link text-danger p-1" data-grocery-remove title="Remove">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+
+                @if (count($items) === 0)
+                    @if (count($groceryItems ?? []) === 0)
+                        {{-- already handled above --}}
+                    @endif
+                @else
                 <div class="cart-card" id="cartItems">
                     @foreach ($items as $row)
                         @php
@@ -127,6 +161,7 @@
                         </div>
                     @endforeach
                 </div>
+                @endif
             </div>
 
             {{-- SUMMARY --}}
@@ -205,28 +240,43 @@
         }, 250);
     }
 
-    document.querySelectorAll('.cart-row').forEach(row => {
+    document.querySelectorAll('.cart-row[data-pid]').forEach(row => {
         const input = row.querySelector('[data-qty-input]');
+        if (!input) return;
 
-        row.querySelector('[data-qty-minus]').addEventListener('click', () => {
+        row.querySelector('[data-qty-minus]')?.addEventListener('click', () => {
             input.value = Math.max(0, parseInt(input.value || '1') - 1);
             updateRow(row);
         });
-        row.querySelector('[data-qty-plus]').addEventListener('click', () => {
+        row.querySelector('[data-qty-plus]')?.addEventListener('click', () => {
             input.value = parseInt(input.value || '0') + 1;
             updateRow(row);
         });
         input.addEventListener('change', () => updateRow(row));
 
-        row.querySelector('[data-remove]').addEventListener('click', async () => {
+        row.querySelector('[data-remove]')?.addEventListener('click', async () => {
             const pid = parseInt(row.dataset.pid);
             const { ok, data } = await window.GS.post(window.GS.urls.cartRemove, { product_id: pid });
             if (ok) {
                 row.remove();
                 window.GS.setCartCount(data.count);
                 window.GS.toast('Removed from cart');
-                if (!document.querySelector('[data-pid]')) location.reload();
+                if (!document.querySelector('[data-pid], [data-grocery-id]')) location.reload();
                 else refreshSummary(data.totals);
+            }
+        });
+    });
+
+    /* ===== Grocery item remove ===== */
+    document.querySelectorAll('[data-grocery-id]').forEach(row => {
+        row.querySelector('[data-grocery-remove]')?.addEventListener('click', async () => {
+            const id = row.dataset.groceryId;
+            const { ok, data } = await window.GS.post(window.GS.urls.cartGroceryRemove, { id });
+            if (ok) {
+                row.remove();
+                window.GS.setCartCount(data.count);
+                window.GS.toast('Removed');
+                if (!document.querySelector('[data-pid], [data-grocery-id]')) location.reload();
             }
         });
     });

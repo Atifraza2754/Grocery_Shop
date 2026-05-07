@@ -13,6 +13,7 @@ class OrderItem extends Model
     protected $fillable = [
         'order_id',
         'product_id',
+        'is_grocery_request',
         'sku',
         'name',
         'unit',
@@ -22,10 +23,21 @@ class OrderItem extends Model
     ];
 
     protected $casts = [
-        'price'      => 'decimal:2',
-        'qty'        => 'decimal:3',
-        'line_total' => 'decimal:2',
+        'is_grocery_request' => 'boolean',
+        'price'              => 'decimal:2',
+        'qty'                => 'decimal:3',
+        'line_total'         => 'decimal:2',
     ];
+
+    public function isGroceryRequest(): bool
+    {
+        return (bool) $this->is_grocery_request;
+    }
+
+    public function needsPricing(): bool
+    {
+        return $this->isGroceryRequest() && (float) $this->price <= 0;
+    }
 
     public function order(): BelongsTo
     {

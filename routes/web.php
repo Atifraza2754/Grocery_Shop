@@ -17,12 +17,14 @@ Route::get('/',                  [HomeController::class, 'index'])->name('site.h
 
 Route::get('/products/{slug}',   [ProductController::class, 'show'])->name('site.product.show');
 
-Route::get('/cart',          [CartController::class, 'index'])->name('site.cart');
-Route::post('/cart/add',     [CartController::class, 'add'])->name('site.cart.add');
-Route::post('/cart/update',  [CartController::class, 'update'])->name('site.cart.update');
-Route::post('/cart/remove',  [CartController::class, 'remove'])->name('site.cart.remove');
-Route::post('/cart/coupon',  [CartController::class, 'coupon'])->name('site.cart.coupon');
-Route::get('/cart/count',    [CartController::class, 'count'])->name('site.cart.count');
+Route::get('/cart',                  [CartController::class, 'index'])->name('site.cart');
+Route::post('/cart/add',             [CartController::class, 'add'])->name('site.cart.add');
+Route::post('/cart/update',          [CartController::class, 'update'])->name('site.cart.update');
+Route::post('/cart/remove',          [CartController::class, 'remove'])->name('site.cart.remove');
+Route::post('/cart/coupon',          [CartController::class, 'coupon'])->name('site.cart.coupon');
+Route::get('/cart/count',            [CartController::class, 'count'])->name('site.cart.count');
+Route::post('/cart/grocery/add',     [CartController::class, 'addGrocery'])->name('site.cart.grocery.add');
+Route::post('/cart/grocery/remove',  [CartController::class, 'removeGrocery'])->name('site.cart.grocery.remove');
 
 Route::get('/checkout',          [CheckoutController::class, 'show'])->name('site.checkout');
 Route::post('/checkout',         [CheckoutController::class, 'place'])->name('site.checkout.place');

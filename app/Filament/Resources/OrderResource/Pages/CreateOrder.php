@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\OrderResource\Pages;
 
 use App\Filament\Resources\OrderResource;
+use App\Jobs\SendOrderWhatsApp;
 use App\Models\Customer;
 use Filament\Resources\Pages\CreateRecord;
 
@@ -40,5 +41,16 @@ class CreateOrder extends CreateRecord
     {
         $this->record->refresh()->load(['items', 'coupon', 'area']);
         $this->record->recalculateTotals();
+
+        // Fire WhatsApp notifications with configured delay.
+        $delay = (int) config('services.whatsapp.send_delay_sec', 5);
+        try {
+            SendOrderWhatsApp::dispatch($this->record->id, 'admin')
+                ->delay(now()->addSeconds($delay));
+            SendOrderWhatsApp::dispatch($this->record->id, 'customer')
+                ->delay(now()->addSeconds($delay));
+        } catch (\Throwable $e) {
+            \Log::warning('Could not dispatch WhatsApp jobs: ' . $e->getMessage());
+        }
     }
 }

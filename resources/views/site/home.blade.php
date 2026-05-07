@@ -168,6 +168,70 @@
                 <i class="fa-solid fa-leaf me-2"></i>{{ $cat->name }}
             </button>
         @endforeach
+        <button class="category-btn" data-cat="grocery">
+            <i class="fa-solid fa-cart-shopping me-2"></i>Grocery (custom)
+        </button>
+    </div>
+
+    {{-- ============ GROCERY VIEW (custom items) ============ --}}
+    <div id="groceryView" style="display:none;" class="mb-4">
+        <div class="gs-card p-4" style="background:#fff;border:1px solid var(--gs-border);border-radius:14px;">
+            <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-3">
+                <div>
+                    <h5 class="mb-1" style="font-weight:700;color:var(--gs-primary-dark);">
+                        <i class="fa-solid fa-pen-to-square me-1"></i> Custom Grocery List
+                    </h5>
+                    <p class="text-muted mb-0 small">
+                        Type any items you need — admin will set the prices after you place the order.
+                    </p>
+                </div>
+            </div>
+
+            <div class="row g-2 align-items-end">
+                <div class="col-12 col-md-6">
+                    <label class="form-label small fw-semibold mb-1">Item name</label>
+                    <input type="text" id="gName" class="form-control"
+                           placeholder="e.g. Daal Chana, Atta 5kg, Cooking Oil"
+                           style="border-radius:10px;">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label small fw-semibold mb-1">Qty</label>
+                    <input type="number" id="gQty" class="form-control" value="1" min="0.1" step="0.1"
+                           style="border-radius:10px;">
+                </div>
+                <div class="col-6 col-md-2">
+                    <label class="form-label small fw-semibold mb-1">Unit</label>
+                    <select id="gUnit" class="form-select" style="border-radius:10px;">
+                        <option value="piece">piece</option>
+                        <option value="pack">pack</option>
+                        <option value="kg">kg</option>
+                        <option value="g">g</option>
+                        <option value="l">litre</option>
+                        <option value="ml">ml</option>
+                        <option value="dozen">dozen</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-2">
+                    <button class="btn-primary-gs w-100" id="gAddBtn" style="border-radius:10px;">
+                        <i class="fa-solid fa-plus me-1"></i> Add
+                    </button>
+                </div>
+            </div>
+
+            <div class="mt-4" id="gListWrap">
+                {{-- Grocery items list rendered here --}}
+            </div>
+
+            <div class="text-muted small mt-3" id="gEmptyText" style="display:none;">
+                No items yet — add items above to get started.
+            </div>
+
+            <div class="d-flex gap-2 mt-3" id="gActions" style="display:none !important;">
+                <a href="{{ route('site.cart') }}" class="btn-primary-gs text-decoration-none flex-grow-1 text-center">
+                    <i class="fa-solid fa-basket-shopping me-1"></i> View cart &amp; checkout
+                </a>
+            </div>
+        </div>
     </div>
 
     {{-- ============ PRODUCT GRID ============ --}}
@@ -200,6 +264,8 @@
     let currentCat = 'all';
     let currentQuery = '';
 
+    const groceryView = document.getElementById('groceryView');
+
     function filter() {
         const q = currentQuery.toLowerCase().trim();
         let shown = 0;
@@ -228,15 +294,102 @@
         }
     }
 
+    function showGrocery(on) {
+        if (on) {
+            groceryView.style.display = '';
+            grid.style.display = 'none';
+            search.parentElement.style.display = 'none';
+        } else {
+            groceryView.style.display = 'none';
+            grid.style.display = '';
+            search.parentElement.style.display = '';
+        }
+    }
+
     // Category click
     document.querySelectorAll('.category-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentCat = btn.dataset.cat;
-            filter();
+            if (currentCat === 'grocery') { showGrocery(true); }
+            else { showGrocery(false); filter(); }
         });
     });
+
+    /* ===== Grocery list (custom items) ===== */
+    const gListWrap = document.getElementById('gListWrap');
+    const gEmpty = document.getElementById('gEmptyText');
+    const gActions = document.getElementById('gActions');
+
+    function renderGroceryList(items) {
+        if (!items.length) {
+            gListWrap.innerHTML = '';
+            gEmpty.style.display = '';
+            gActions.style.display = 'none !important';
+            gActions.setAttribute('style', 'display:none !important;');
+            return;
+        }
+        gEmpty.style.display = 'none';
+        gActions.removeAttribute('style');
+
+        gListWrap.innerHTML = `
+            <div style="border:1px solid var(--gs-border);border-radius:10px;overflow:hidden;">
+                ${items.map((it, idx) => `
+                    <div class="d-flex align-items-center gap-2 p-2 ${idx > 0 ? 'border-top' : ''}" data-gid="${it.id}">
+                        <div class="flex-grow-1">
+                            <div class="fw-semibold">${escapeHtml(it.name)}</div>
+                            <div class="text-muted small">${it.qty} ${escapeHtml(it.unit)}</div>
+                        </div>
+                        <button class="btn btn-sm btn-link text-danger p-1" data-gremove="${it.id}" title="Remove">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, c => (
+            { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+        ));
+    }
+
+    document.getElementById('gAddBtn').addEventListener('click', async () => {
+        const name = document.getElementById('gName').value.trim();
+        const qty  = parseFloat(document.getElementById('gQty').value || '1');
+        const unit = document.getElementById('gUnit').value;
+
+        if (!name) { window.GS.toast('Enter an item name', 'warn'); return; }
+
+        const { ok, data } = await window.GS.post(window.GS.urls.cartGroceryAdd, { name, qty, unit });
+        if (ok) {
+            renderGroceryList(data.items || []);
+            window.GS.setCartCount(data.count);
+            window.GS.toast('Added: ' + name);
+            document.getElementById('gName').value = '';
+            document.getElementById('gQty').value = '1';
+            document.getElementById('gName').focus();
+        } else {
+            window.GS.toast(data.message || 'Could not add', 'error');
+        }
+    });
+
+    gListWrap.addEventListener('click', async (e) => {
+        const btn = e.target.closest('[data-gremove]');
+        if (!btn) return;
+        const id = btn.dataset.gremove;
+        const { ok, data } = await window.GS.post(window.GS.urls.cartGroceryRemove, { id });
+        if (ok) {
+            renderGroceryList(data.items || []);
+            window.GS.setCartCount(data.count);
+            window.GS.toast('Removed');
+        }
+    });
+
+    // Initial load: render any grocery items already in cart
+    renderGroceryList(@json(app(\App\Services\CartService::class)->groceryItems()));
 
     // Search
     let searchTimer;

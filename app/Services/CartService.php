@@ -25,9 +25,10 @@ class CartService
     public function state(): array
     {
         return Session::get(self::KEY, [
-            'items'       => [],
-            'coupon_id'   => null,
-            'coupon_code' => null,
+            'items'         => [],
+            'grocery_items' => [],
+            'coupon_id'     => null,
+            'coupon_code'   => null,
         ]);
     }
 
@@ -167,12 +168,66 @@ class CartService
         foreach ($this->state()['items'] as $row) {
             $sum += (int) ceil((float) $row['qty']);
         }
+        // Include grocery requests in the badge count
+        foreach ($this->state()['grocery_items'] ?? [] as $g) {
+            $sum += (int) ceil((float) ($g['qty'] ?? 1));
+        }
         return $sum;
     }
 
     public function isEmpty(): bool
     {
-        return count($this->items()) === 0;
+        return count($this->items()) === 0
+            && count($this->groceryItems()) === 0;
+    }
+
+    /* ---------- Grocery items (customer-typed) ---------- */
+
+    public function groceryItems(): array
+    {
+        return array_values($this->state()['grocery_items'] ?? []);
+    }
+
+    public function addGroceryItem(string $name, float $qty = 1, string $unit = 'piece'): array
+    {
+        $name = trim($name);
+        if ($name === '') {
+            return ['ok' => false, 'message' => 'Item name is required.'];
+        }
+        $qty = max(0.001, (float) $qty);
+
+        $state = $this->state();
+        $state['grocery_items'] ??= [];
+        $state['grocery_items'][] = [
+            'id'   => uniqid('g_', true),
+            'name' => $name,
+            'qty'  => $qty,
+            'unit' => $unit ?: 'piece',
+        ];
+        $this->save($state);
+
+        return [
+            'ok'      => true,
+            'message' => $name . ' added',
+            'count'   => $this->totalQuantity(),
+            'items'   => $this->groceryItems(),
+        ];
+    }
+
+    public function removeGroceryItem(string $id): array
+    {
+        $state = $this->state();
+        $state['grocery_items'] = array_values(array_filter(
+            $state['grocery_items'] ?? [],
+            fn ($g) => ($g['id'] ?? null) !== $id
+        ));
+        $this->save($state);
+
+        return [
+            'ok'    => true,
+            'count' => $this->totalQuantity(),
+            'items' => $this->groceryItems(),
+        ];
     }
 
     public function subtotal(): float

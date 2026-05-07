@@ -13,10 +13,11 @@ class CartController extends Controller
 
     public function index()
     {
-        $items   = $this->cart->items();
-        $totals  = $this->cart->totals(null);
+        $items         = $this->cart->items();
+        $groceryItems  = $this->cart->groceryItems();
+        $totals        = $this->cart->totals(null);
 
-        return view('site.cart', compact('items', 'totals'));
+        return view('site.cart', compact('items', 'groceryItems', 'totals'));
     }
 
     public function add(Request $request): JsonResponse
@@ -70,5 +71,29 @@ class CartController extends Controller
     public function count(): JsonResponse
     {
         return response()->json(['count' => $this->cart->totalQuantity()]);
+    }
+
+    public function addGrocery(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'name' => 'required|string|max:160',
+            'qty'  => 'nullable|numeric|min:0.001|max:9999',
+            'unit' => 'nullable|string|max:32',
+        ]);
+
+        $result = $this->cart->addGroceryItem(
+            $data['name'],
+            (float) ($data['qty'] ?? 1),
+            $data['unit'] ?? 'piece'
+        );
+
+        return response()->json($result + ['count' => $this->cart->totalQuantity()]);
+    }
+
+    public function removeGrocery(Request $request): JsonResponse
+    {
+        $data = $request->validate(['id' => 'required|string']);
+        $result = $this->cart->removeGroceryItem($data['id']);
+        return response()->json($result);
     }
 }

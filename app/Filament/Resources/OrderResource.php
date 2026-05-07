@@ -125,12 +125,7 @@ class OrderResource extends Resource
 
                 /* --- Items --- */
                 Forms\Components\Section::make('Items')
-                    ->headerActions([
-                        Forms\Components\Actions\Action::make('refresh_totals')
-                            ->label('Recalculate')
-                            ->icon('heroicon-m-arrow-path')
-                            ->action(fn () => null), // form is reactive via live()
-                    ])
+                    ->description('Grocery (custom) items have an editable name. Set price + qty and save — totals auto-recalc.')
                     ->schema([
                         Forms\Components\Repeater::make('items')
                             ->relationship()
@@ -141,6 +136,7 @@ class OrderResource extends Resource
                             ->addActionLabel('+ Add product')
                             ->live()
                             ->schema([
+                                /* ===== ROW 1: Product + Name (5 + 7 = 12) ===== */
                                 Forms\Components\Select::make('product_id')
                                     ->label('Product')
                                     ->options(
@@ -154,7 +150,9 @@ class OrderResource extends Resource
                                             ->all()
                                     )
                                     ->searchable()
-                                    ->required()
+                                    ->placeholder(fn (Get $get) => $get('is_grocery_request') ? '— Custom item —' : 'Pick a product')
+                                    ->disabled(fn (Get $get) => (bool) $get('is_grocery_request'))
+                                    ->dehydrated()
                                     ->live()
                                     ->afterStateUpdated(function ($state, Set $set) {
                                         if (! $state) return;
@@ -165,23 +163,31 @@ class OrderResource extends Resource
                                         $set('unit',  $p->unit);
                                         $set('price', (float) $p->price);
                                     })
-                                    ->columnSpan(5),
+                                    ->columnSpan(['default' => 12, 'md' => 5]),
 
+                                Forms\Components\TextInput::make('name')
+                                    ->label('Name')
+                                    ->required()
+                                    ->maxLength(180)
+                                    ->columnSpan(['default' => 12, 'md' => 7]),
+
+                                /* ===== ROW 2: Qty + Unit + Price + Total (3 + 2 + 3 + 4 = 12) ===== */
                                 Forms\Components\TextInput::make('qty')
                                     ->numeric()->required()
                                     ->default(1)->minValue(0)->step(0.001)
                                     ->live(onBlur: true)
-                                    ->columnSpan(2),
+                                    ->columnSpan(['default' => 4, 'md' => 3]),
 
                                 Forms\Components\TextInput::make('unit')
-                                    ->disabled()->dehydrated()
-                                    ->columnSpan(1),
+                                    ->maxLength(32)
+                                    ->columnSpan(['default' => 4, 'md' => 2]),
 
                                 Forms\Components\TextInput::make('price')
                                     ->numeric()->required()
                                     ->prefix('Rs')
                                     ->live(onBlur: true)
-                                    ->columnSpan(2),
+                                    ->placeholder(fn (Get $get) => $get('is_grocery_request') ? 'Set price' : null)
+                                    ->columnSpan(['default' => 4, 'md' => 3]),
 
                                 Forms\Components\Placeholder::make('line_total')
                                     ->label('Line total')
@@ -189,15 +195,15 @@ class OrderResource extends Resource
                                         $lt = ((float) ($get('price') ?? 0))
                                             * ((float) ($get('qty') ?? 0));
                                         return new HtmlString(
-                                            '<span class="font-semibold">Rs '
+                                            '<span class="text-base font-bold text-emerald-700 whitespace-nowrap">Rs '
                                             . number_format($lt, 2) . '</span>'
                                         );
                                     })
-                                    ->columnSpan(2),
+                                    ->columnSpan(['default' => 12, 'md' => 4]),
 
-                                // hidden snapshot
+                                // hidden snapshots
                                 Forms\Components\Hidden::make('sku'),
-                                Forms\Components\Hidden::make('name'),
+                                Forms\Components\Hidden::make('is_grocery_request'),
                             ]),
                     ]),
 
@@ -403,21 +409,36 @@ class OrderResource extends Resource
         return $table
             ->defaultSort('id', 'desc')
             ->columns([
+                /* ===== Required sequence: order_no → area → total → contact ===== */
                 Tables\Columns\TextColumn::make('order_no')
                     ->label('Order #')
                     ->badge()->color('gray')
                     ->searchable()->sortable()->weight('semibold'),
 
-                Tables\Columns\TextColumn::make('customer_name')
-                    ->label('Customer')
-                    ->description(fn (Order $r) => $r->customer_phone)
-                    ->searchable(['customer_name', 'customer_phone'])
-                    ->wrap(),
-
                 Tables\Columns\TextColumn::make('area.name')
                     ->label('Area')
                     ->placeholder('—')
                     ->badge()->color('gray')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('total')
+                    ->label('Total bill')
+                    ->money('PKR')
+                    ->sortable()
+                    ->weight('semibold'),
+
+                Tables\Columns\TextColumn::make('customer_phone')
+                    ->label('Contact')
+                    ->copyable()
+                    ->copyMessage('Phone copied!')
+                    ->searchable()
+                    ->weight('medium'),
+
+                /* ===== Remaining columns ===== */
+                Tables\Columns\TextColumn::make('customer_name')
+                    ->label('Customer')
+                    ->searchable(['customer_name', 'customer_phone'])
+                    ->wrap()
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('ambassador.name')
@@ -432,16 +453,18 @@ class OrderResource extends Resource
                     ->numeric()
                     ->toggleable(),
 
-                Tables\Columns\TextColumn::make('total')
-                    ->money('PKR')
-                    ->sortable()
-                    ->weight('semibold'),
-
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->color(fn (Order $r) => $r->statusColor())
                     ->formatStateUsing(fn (Order $r) => $r->statusLabel())
                     ->sortable(),
+
+                Tables\Columns\TextColumn::make('pricing_status')
+                    ->label('Pricing')
+                    ->state(fn (Order $r) => $r->needsPricing() ? 'Needs pricing' : 'Priced')
+                    ->badge()
+                    ->color(fn ($state) => $state === 'Needs pricing' ? 'warning' : 'gray')
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('payment_status')
                     ->badge()
@@ -464,7 +487,8 @@ class OrderResource extends Resource
                     ->label('Placed')
                     ->dateTime('M j, Y H:i')
                     ->since()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
@@ -489,11 +513,25 @@ class OrderResource extends Resource
                     ->query(fn (Builder $q) => $q->whereDate('created_at', today())),
                 Tables\Filters\TrashedFilter::make(),
             ])
+            ->actionsPosition(\Filament\Tables\Enums\ActionsPosition::BeforeColumns)
             ->actions([
+                /* ===== Required sequence: view → copy text → confirm ===== */
+                Tables\Actions\Action::make('view')
+                    ->label('View')
+                    ->icon('heroicon-o-eye')
+                    ->color('info')
+                    ->modalHeading(fn (Order $r) => 'Order ' . $r->order_no)
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Close')
+                    ->modalWidth('xl')
+                    ->modalContent(fn (Order $record) =>
+                        view('filament.orders.view-modal', ['order' => $record->load('items', 'area', 'ambassador')])
+                    ),
+
                 Tables\Actions\Action::make('copy_text')
                     ->label('Copy text')
                     ->icon('heroicon-o-clipboard-document')
-                    ->color('success')
+                    ->color('gray')
                     ->modalHeading(fn (Order $r) => 'Order ' . $r->order_no . ' — share text')
                     ->modalSubmitAction(false)
                     ->modalCancelActionLabel('Close')
@@ -502,6 +540,21 @@ class OrderResource extends Resource
                         view('filament.orders.share-modal', ['order' => $record])
                     ),
 
+                Tables\Actions\Action::make('confirm')
+                    ->label('Confirm')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->visible(fn (Order $r) => $r->status === Order::STATUS_PENDING)
+                    ->requiresConfirmation()
+                    ->modalDescription(fn (Order $r) => $r->needsPricing()
+                        ? 'This order has unpriced grocery items. Confirm anyway?'
+                        : 'Confirm this order?')
+                    ->action(function (Order $record) {
+                        $record->changeStatus(Order::STATUS_CONFIRMED);
+                        Notification::make()->title('Order confirmed')->success()->send();
+                    }),
+
+                /* ===== Standard actions afterwards ===== */
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])

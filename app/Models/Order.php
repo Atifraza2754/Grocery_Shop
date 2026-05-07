@@ -295,6 +295,31 @@ class Order extends Model
         return self::STATUSES[$this->status] ?? ucfirst($this->status);
     }
 
+    /** True if any item is a grocery request without a price. */
+    public function needsPricing(): bool
+    {
+        return $this->items()
+            ->where('is_grocery_request', true)
+            ->where(function ($q) {
+                $q->whereNull('price')->orWhere('price', '<=', 0);
+            })
+            ->exists();
+    }
+
+    public function pricingStatusLabel(): string
+    {
+        return $this->needsPricing() ? 'Needs pricing' : 'Priced';
+    }
+
+    /** Google-Maps-friendly URL for the live location, or null. */
+    public function mapsUrl(): ?string
+    {
+        if ($this->lat && $this->lng) {
+            return "https://www.google.com/maps?q={$this->lat},{$this->lng}";
+        }
+        return null;
+    }
+
     public function statusColor(): string
     {
         return match ($this->status) {

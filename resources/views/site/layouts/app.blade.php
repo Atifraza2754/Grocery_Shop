@@ -187,11 +187,13 @@
     window.GS = {
         csrf:  document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
         urls:  {
-            cartAdd:    @json(route('site.cart.add')),
-            cartUpdate: @json(route('site.cart.update')),
-            cartRemove: @json(route('site.cart.remove')),
-            cartCoupon: @json(route('site.cart.coupon')),
-            cartCount:  @json(route('site.cart.count')),
+            cartAdd:           @json(route('site.cart.add')),
+            cartUpdate:        @json(route('site.cart.update')),
+            cartRemove:        @json(route('site.cart.remove')),
+            cartCoupon:        @json(route('site.cart.coupon')),
+            cartCount:         @json(route('site.cart.count')),
+            cartGroceryAdd:    @json(route('site.cart.grocery.add')),
+            cartGroceryRemove: @json(route('site.cart.grocery.remove')),
         },
 
         toast(message, type = 'success') {

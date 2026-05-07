@@ -129,3 +129,66 @@
 .dark .fi-sidebar-header .fi-logo {
     color: rgb(134, 239, 172) !important;                     /* green-300 */
 }
+
+/* ============================================================
+   Resource page header — compact title + actions on one line
+   ============================================================ */
+
+/* Reduce the giant page heading to a sensible size */
+.fi-header-heading,
+.fi-resource-edit-record-page h1.fi-header-heading,
+.fi-resource-create-record-page h1.fi-header-heading {
+    font-size: 1.25rem !important;        /* ~text-xl */
+    line-height: 1.6 !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.01em !important;
+}
+
+/* Header layout: heading on its own line, action row below */
+.fi-header {
+    flex-wrap: wrap !important;
+    align-items: flex-start !important;
+    row-gap: 0.75rem !important;
+}
+.fi-header > .fi-header-heading-ctn,
+.fi-header > div:first-child {
+    flex: 1 1 100% !important;
+    min-width: 0 !important;
+}
+
+/* Action row — keep on a single line, scroll horizontally if needed */
+.fi-ac.fi-header-actions,
+.fi-header > .fi-ac {
+    flex: 1 1 100% !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    padding-bottom: 4px;
+    gap: 0.5rem !important;
+    scrollbar-width: thin;
+}
+.fi-ac.fi-header-actions::-webkit-scrollbar       { height: 4px; }
+.fi-ac.fi-header-actions::-webkit-scrollbar-thumb { background: #d0d7de; border-radius: 4px; }
+
+/* Buttons inside header actions: don't shrink */
+.fi-ac.fi-header-actions .fi-btn {
+    flex: 0 0 auto !important;
+    white-space: nowrap !important;
+}
+
+/* Breadcrumb — keep on one line, smaller text */
+.fi-breadcrumbs,
+.fi-breadcrumbs nav,
+.fi-breadcrumbs ol,
+.fi-breadcrumbs ul {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    white-space: nowrap !important;
+}
+.fi-breadcrumbs {
+    font-size: 0.85rem !important;
+    margin-bottom: 0.25rem !important;
+}
+.fi-breadcrumbs li,
+.fi-breadcrumbs-item {
+    flex-shrink: 0 !important;
+}
