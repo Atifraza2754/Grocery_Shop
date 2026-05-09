@@ -89,17 +89,28 @@ class Ambassador extends Model
 
     public function getCommissionTotalAttribute(): float
     {
-        return (float) $this->commissions()->sum('amount');
+        // Total earned across all commissions, excluding cancelled
+        return (float) $this->commissions()
+            ->where('status', '!=', Commission::STATUS_CANCELLED)
+            ->sum('amount');
     }
 
     public function getCommissionPaidAttribute(): float
     {
-        return (float) $this->commissions()->where('status', Commission::STATUS_PAID)->sum('amount');
+        // Total actually paid out so far (counts partial payments too)
+        return (float) $this->commissions()
+            ->where('status', '!=', Commission::STATUS_CANCELLED)
+            ->sum('paid_amount');
     }
 
     public function getCommissionPendingAttribute(): float
     {
-        return (float) $this->commissions()->where('status', Commission::STATUS_PENDING)->sum('amount');
+        // Outstanding balance = sum(amount - paid_amount) on non-cancelled rows
+        $rows = $this->commissions()
+            ->where('status', '!=', Commission::STATUS_CANCELLED)
+            ->get(['amount', 'paid_amount']);
+
+        return (float) $rows->sum(fn ($c) => max(0, (float) $c->amount - (float) $c->paid_amount));
     }
 
     /* ---------- Stock helpers ---------- */

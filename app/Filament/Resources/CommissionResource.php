@@ -45,6 +45,12 @@ class CommissionResource extends Resource
                         ->numeric()->prefix('Rs')->step(0.01)
                         ->required(),
 
+                    Forms\Components\TextInput::make('paid_amount')
+                        ->label('Paid so far')
+                        ->numeric()->prefix('Rs')->step(0.01)
+                        ->default(0)
+                        ->helperText('Use the "Pay" action on the list to record payments — this is just for manual fixes.'),
+
                     Forms\Components\Select::make('paid_method')
                         ->options([
                             'cash'     => 'Cash',
@@ -100,6 +106,27 @@ class CommissionResource extends Resource
                     ->weight('semibold')
                     ->sortable(),
 
+                Tables\Columns\TextColumn::make('paid_amount')
+                    ->label('Paid')
+                    ->money('PKR')
+                    ->color('success'),
+
+                Tables\Columns\TextColumn::make('remaining')
+                    ->label('Remaining')
+                    ->state(fn (Commission $r) => (float) $r->remaining)
+                    ->money('PKR')
+                    ->weight('semibold')
+                    ->color(fn ($state) => $state > 0 ? 'warning' : 'gray'),
+
+                Tables\Columns\TextColumn::make('source')
+                    ->label('Source')
+                    ->state(fn (Commission $r) => $r->stock_movement_id
+                        ? 'Stock release'
+                        : ($r->order_id ? 'Order' : '—'))
+                    ->badge()
+                    ->color(fn ($state) => $state === 'Stock release' ? 'info' : ($state === 'Order' ? 'success' : 'gray'))
+                    ->toggleable(),
+
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->formatStateUsing(fn (Commission $r) => Commission::STATUSES[$r->status] ?? $r->status)
@@ -136,13 +163,30 @@ class CommissionResource extends Resource
                     ])),
             ])
             ->actions([
-                Tables\Actions\Action::make('mark_paid')
-                    ->label('Mark paid')
-                    ->icon('heroicon-m-check-circle')
+                Tables\Actions\Action::make('pay')
+                    ->label(fn (Commission $r) =>
+                        'Pay (Rs ' . number_format((float) $r->remaining, 0) . ')')
+                    ->icon('heroicon-m-banknotes')
                     ->color('success')
-                    ->visible(fn (Commission $r) => $r->status === Commission::STATUS_PENDING)
+                    ->visible(fn (Commission $r) => (float) $r->remaining > 0
+                        && $r->status !== Commission::STATUS_CANCELLED)
+                    ->modalHeading(fn (Commission $r) =>
+                        'Pay ' . ($r->ambassador?->name ?? 'commission')
+                        . ' — remaining Rs ' . number_format((float) $r->remaining, 2))
+                    ->modalDescription('Partial payment is allowed. Enter the amount you are paying now.')
                     ->form([
+                        Forms\Components\TextInput::make('pay_amount')
+                            ->label('Pay amount (Rs)')
+                            ->numeric()
+                            ->required()
+                            ->prefix('Rs')
+                            ->minValue(0.01)
+                            ->step(0.01)
+                            ->default(fn (Commission $record) => (float) $record->remaining)
+                            ->helperText('Defaults to full remaining; lower it for a partial payment.'),
+
                         Forms\Components\Select::make('paid_method')
+                            ->label('Method')
                             ->options([
                                 'cash'     => 'Cash',
                                 'transfer' => 'Bank Transfer',
@@ -151,11 +195,23 @@ class CommissionResource extends Resource
                             ])
                             ->default('cash')
                             ->required(),
+
                         Forms\Components\Textarea::make('note')->rows(2),
                     ])
                     ->action(function (Commission $record, array $data) {
-                        $record->markPaid($data['paid_method'] ?? null, $data['note'] ?? null);
-                        Notification::make()->title('Paid out')->success()->send();
+                        $applied = $record->payAmount(
+                            (float) $data['pay_amount'],
+                            $data['paid_method'] ?? null,
+                            $data['note'] ?? null,
+                        );
+                        $remaining = (float) $record->fresh()->remaining;
+                        Notification::make()
+                            ->title('Paid Rs ' . number_format($applied, 2))
+                            ->body($remaining > 0
+                                ? 'Remaining on this commission: Rs ' . number_format($remaining, 2)
+                                : 'Commission fully paid')
+                            ->success()
+                            ->send();
                     }),
 
                 Tables\Actions\EditAction::make(),
@@ -163,7 +219,7 @@ class CommissionResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkAction::make('mark_paid_bulk')
-                    ->label('Mark selected as paid')
+                    ->label('Mark selected fully paid')
                     ->icon('heroicon-m-check-circle')
                     ->color('success')
                     ->requiresConfirmation()
@@ -180,14 +236,18 @@ class CommissionResource extends Resource
                     ])
                     ->action(function ($records, array $data) {
                         $count = 0;
+                        $totalPaid = 0.0;
                         foreach ($records as $r) {
-                            if ($r->status === Commission::STATUS_PENDING) {
-                                $r->markPaid($data['paid_method'] ?? null);
+                            $remaining = (float) $r->remaining;
+                            if ($remaining > 0 && $r->status !== Commission::STATUS_CANCELLED) {
+                                $r->payAmount($remaining, $data['paid_method'] ?? null);
                                 $count++;
+                                $totalPaid += $remaining;
                             }
                         }
                         Notification::make()
-                            ->title("{$count} commissions marked paid")
+                            ->title("Paid Rs " . number_format($totalPaid, 2))
+                            ->body("{$count} commissions settled in full")
                             ->success()->send();
                     }),
                 Tables\Actions\DeleteBulkAction::make(),
@@ -208,10 +268,10 @@ class CommissionResource extends Resource
         ];
     }
 
-    /* Pending count badge */
+    /* Owing count badge — anything still has a balance > 0 */
     public static function getNavigationBadge(): ?string
     {
-        $count = Commission::where('status', Commission::STATUS_PENDING)->count();
+        $count = Commission::owing()->count();
         return $count > 0 ? (string) $count : null;
     }
 

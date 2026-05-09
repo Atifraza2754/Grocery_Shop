@@ -46,6 +46,16 @@ class StockItemResource extends Resource
                             'dozen' => 'Dozen',
                         ]),
 
+                    Forms\Components\TextInput::make('price')
+                        ->label('Price (per unit)')
+                        ->numeric()
+                        ->required()
+                        ->prefix('Rs')
+                        ->default(0)
+                        ->minValue(0)
+                        ->step(0.01)
+                        ->helperText('Used for commission calculation when stock is released.'),
+
                     Forms\Components\Textarea::make('description')
                         ->rows(2)
                         ->columnSpanFull(),
@@ -67,6 +77,12 @@ class StockItemResource extends Resource
 
                 Tables\Columns\TextColumn::make('unit')
                     ->badge()->color('gray'),
+
+                Tables\Columns\TextColumn::make('price')
+                    ->label('Price')
+                    ->money('PKR')
+                    ->sortable()
+                    ->weight('semibold'),
 
                 Tables\Columns\TextColumn::make('total_qty')
                     ->label('Total in field')

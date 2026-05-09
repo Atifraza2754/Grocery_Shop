@@ -15,12 +15,22 @@ class ListCommissions extends ListRecords
     public function getTabs(): array
     {
         return [
-            'all'       => Tab::make('All'),
-            'pending'   => Tab::make('Pending')
-                ->badge(Commission::where('status', Commission::STATUS_PENDING)->count())
+            'all' => Tab::make('All'),
+
+            'owing' => Tab::make('Owing')
+                ->badge(Commission::owing()->count())
+                ->badgeColor('warning')
+                ->modifyQueryUsing(fn (Builder $q) => $q->owing()),
+
+            'pending' => Tab::make('Pending')
                 ->modifyQueryUsing(fn (Builder $q) => $q->where('status', Commission::STATUS_PENDING)),
-            'paid'      => Tab::make('Paid')
+
+            'partial' => Tab::make('Partial')
+                ->modifyQueryUsing(fn (Builder $q) => $q->where('status', Commission::STATUS_PARTIAL)),
+
+            'paid' => Tab::make('Paid')
                 ->modifyQueryUsing(fn (Builder $q) => $q->where('status', Commission::STATUS_PAID)),
+
             'cancelled' => Tab::make('Cancelled')
                 ->modifyQueryUsing(fn (Builder $q) => $q->where('status', Commission::STATUS_CANCELLED)),
         ];

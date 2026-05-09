@@ -77,38 +77,18 @@ class EditOrder extends EditRecord
                 ],
             ),
 
-            // Cancel — explicit definition, separate from forward-only flow.
-            // Required note + danger color + dedicated copy.
-            Actions\Action::make('cancel')
-                ->label('Cancel order')
-                ->icon('heroicon-o-x-circle')
-                ->color('danger')
-                ->visible(fn () => in_array($this->record->status, [
+            // Cancel — uses the SAME helper as the forward-only buttons,
+            // so the modal-form code path is identical (and proven to work).
+            $this->statusAction(
+                'cancel', 'Cancel order',
+                Order::STATUS_CANCELLED, 'heroicon-o-x-circle', 'danger',
+                [
                     Order::STATUS_PENDING,
                     Order::STATUS_CONFIRMED,
                     Order::STATUS_PREPARING,
                     Order::STATUS_OUT_FOR_DELIVERY,
-                ], true))
-                ->modalHeading('Cancel this order?')
-                ->modalDescription('Marking the order cancelled cannot be undone. Pending coupon usage will be refunded.')
-                ->modalSubmitActionLabel('Yes, cancel order')
-                ->modalIcon('heroicon-o-exclamation-triangle')
-                ->form([
-                    Forms\Components\Textarea::make('note')
-                        ->label('Reason')
-                        ->placeholder('Why is this order being cancelled?')
-                        ->rows(3)
-                        ->required(),
-                ])
-                ->action(function (array $data) {
-                    $this->record->changeStatus(Order::STATUS_CANCELLED, $data['note'] ?? null);
-                    Notification::make()
-                        ->title('Order cancelled')
-                        ->body($this->record->order_no . ' is now Cancelled')
-                        ->success()
-                        ->send();
-                    $this->refreshFormData(['status', 'cancelled_at']);
-                }),
+                ],
+            ),
 
             Actions\Action::make('copy_text')
                 ->label('Copy text')

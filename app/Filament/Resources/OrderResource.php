@@ -493,6 +493,7 @@ class OrderResource extends Resource
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
                     ->options(Order::STATUSES),
+
                 Tables\Filters\SelectFilter::make('payment_status')
                     ->options([
                         'pending'  => 'Pending',
@@ -500,18 +501,29 @@ class OrderResource extends Resource
                         'failed'   => 'Failed',
                         'refunded' => 'Refunded',
                     ]),
+
                 Tables\Filters\SelectFilter::make('area_id')
-                    ->relationship('area', 'name')
-                    ->preload()->searchable()
-                    ->label('Area'),
+                    ->label('Area')
+                    ->options(
+                        fn () => \App\Models\Area::query()
+                            ->orderBy('sort_order')
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                            ->all()
+                    ),
+
                 Tables\Filters\SelectFilter::make('ambassador_id')
-                    ->relationship('ambassador', 'name')
-                    ->preload()->searchable()
-                    ->label('Ambassador'),
+                    ->label('Ambassador')
+                    ->options(
+                        fn () => \App\Models\Ambassador::query()
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                            ->all()
+                    ),
+
                 Tables\Filters\Filter::make('today')
                     ->label('Placed today')
                     ->query(fn (Builder $q) => $q->whereDate('created_at', today())),
-                Tables\Filters\TrashedFilter::make(),
             ])
             ->actionsPosition(\Filament\Tables\Enums\ActionsPosition::BeforeColumns)
             ->actions([
@@ -567,9 +579,12 @@ class OrderResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
+        // Eager-load common relationships for the list view to keep it snappy.
+        // We do NOT remove the SoftDeletingScope here — that combination with
+        // TrashedFilter previously caused "newQueryWithoutRelationships() on null"
+        // when filters re-applied during a Livewire tab click.
         return parent::getEloquentQuery()
-            ->with(['area', 'ambassador'])
-            ->withoutGlobalScopes([SoftDeletingScope::class]);
+            ->with(['area', 'ambassador']);
     }
 
     public static function getRelations(): array

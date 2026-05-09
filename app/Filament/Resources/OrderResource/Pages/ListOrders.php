@@ -82,8 +82,12 @@ class ListOrders extends ListRecords
                 ->badge($count(Order::STATUS_OUT_FOR_DELIVERY))
                 ->modifyQueryUsing(fn (Builder $q) => $q->where('status', Order::STATUS_OUT_FOR_DELIVERY)),
             'delivered'        => Tab::make('Delivered')
+                ->badge($count(Order::STATUS_DELIVERED))
+                ->badgeColor('success')
                 ->modifyQueryUsing(fn (Builder $q) => $q->where('status', Order::STATUS_DELIVERED)),
             'cancelled'        => Tab::make('Cancelled')
+                ->badge($count(Order::STATUS_CANCELLED))
+                ->badgeColor('danger')
                 ->modifyQueryUsing(fn (Builder $q) => $q->where('status', Order::STATUS_CANCELLED)),
         ];
     }

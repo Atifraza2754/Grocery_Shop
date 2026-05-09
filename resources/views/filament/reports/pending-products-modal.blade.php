@@ -1,0 +1,31 @@
+@php
+    $lines = [];
+    $lines[] = '🛒 *Pending products to prepare*';
+    $lines[] = '';
+    foreach ($rows as $r) {
+        $qty = rtrim(rtrim((string) $r->total_qty, '0'), '.');
+        $sku = $r->sku ? "[{$r->sku}] " : '';
+        $lines[] = "• {$sku}{$r->name} — {$qty} {$r->unit} ({$r->orders_count} order"
+                 . ($r->orders_count > 1 ? 's' : '') . ')';
+    }
+    $text = implode("\n", $lines);
+@endphp
+
+<div x-data="{ copy() { navigator.clipboard.writeText($refs.txt.value); this.copied = true; setTimeout(() => this.copied = false, 1500); }, copied: false }"
+     class="space-y-3">
+
+    <textarea x-ref="txt" readonly rows="14"
+        class="w-full font-mono text-sm rounded-lg border border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 p-3 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+    >{{ $text }}</textarea>
+
+    <div class="flex items-center gap-3">
+        <button type="button" @click="copy()"
+            class="inline-flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M7 3a2 2 0 00-2 2v10a2 2 0 002 2h6a2 2 0 002-2V5a2 2 0 00-2-2H7zm0 2h6v10H7V5z"/>
+            </svg>
+            <span x-text="copied ? 'Copied!' : 'Copy to clipboard'"></span>
+        </button>
+        <span class="text-xs text-gray-500">Paste into WhatsApp / shopping list</span>
+    </div>
+</div>

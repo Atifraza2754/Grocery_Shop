@@ -89,6 +89,14 @@ class ProductResource extends Resource
                                     ->step(0.01)
                                     ->helperText('Optional MRP / strikethrough.'),
 
+                                Forms\Components\TextInput::make('cost_price')
+                                    ->label('Cost price')
+                                    ->numeric()
+                                    ->prefix('Rs')
+                                    ->minValue(0)
+                                    ->step(0.01)
+                                    ->helperText('Used to calculate margin.'),
+
                                 Forms\Components\Select::make('unit')
                                     ->options([
                                         'piece' => 'Piece',

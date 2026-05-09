@@ -21,6 +21,7 @@ class Product extends Model
         'unit',
         'price',
         'compare_price',
+        'cost_price',
         'stock_qty',
         'low_stock_threshold',
         'short_description',
@@ -34,12 +35,26 @@ class Product extends Model
     protected $casts = [
         'price'               => 'decimal:2',
         'compare_price'       => 'decimal:2',
+        'cost_price'          => 'decimal:2',
         'stock_qty'           => 'integer',
         'low_stock_threshold' => 'integer',
         'is_active'           => 'boolean',
         'is_featured'         => 'boolean',
         'sort_order'          => 'integer',
     ];
+
+    /* ---------- Margin accessors ---------- */
+
+    public function getMarginAmountAttribute(): float
+    {
+        return max(0, (float) $this->price - (float) $this->cost_price);
+    }
+
+    public function getMarginPercentAttribute(): float
+    {
+        if ((float) $this->price <= 0) return 0;
+        return round(($this->margin_amount / (float) $this->price) * 100, 2);
+    }
 
     /* ---------- Relationships ---------- */
 

@@ -150,6 +150,49 @@ class AmbassadorResource extends Resource
                 Tables\Filters\TrashedFilter::make(),
             ])
             ->actions([
+                Tables\Actions\Action::make('pay')
+                    ->label(fn (Ambassador $r) => 'Pay ' . number_format((float) $r->commission_pending, 0))
+                    ->icon('heroicon-o-banknotes')
+                    ->color('success')
+                    ->visible(fn (Ambassador $r) => (float) $r->commission_pending > 0)
+                    ->modalHeading(fn (Ambassador $r) => 'Pay ' . $r->name
+                        . ' — total remaining Rs ' . number_format((float) $r->commission_pending, 2))
+                    ->modalDescription('Partial payments are allowed; oldest commissions settle first.')
+                    ->form([
+                        \Filament\Forms\Components\TextInput::make('pay_amount')
+                            ->label('Pay amount (Rs)')
+                            ->numeric()->required()
+                            ->prefix('Rs')
+                            ->minValue(0.01)->step(0.01),
+
+                        \Filament\Forms\Components\Select::make('paid_method')
+                            ->options([
+                                'cash'     => 'Cash',
+                                'transfer' => 'Bank Transfer',
+                                'mobile'   => 'JazzCash / EasyPaisa',
+                                'other'    => 'Other',
+                            ])
+                            ->default('cash')->required(),
+
+                        \Filament\Forms\Components\Textarea::make('note')->rows(2),
+                    ])
+                    ->action(function (Ambassador $record, array $data) {
+                        $applied = \App\Models\Commission::applyAmbassadorPayment(
+                            $record->id,
+                            (float) $data['pay_amount'],
+                            $data['paid_method'] ?? null,
+                            $data['note'] ?? null,
+                        );
+
+                        \Filament\Notifications\Notification::make()
+                            ->title('Paid Rs ' . number_format($applied, 2))
+                            ->body('Remaining: Rs ' . number_format(
+                                (float) $record->fresh()->commission_pending, 2
+                            ))
+                            ->success()
+                            ->send();
+                    }),
+
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
             ])
