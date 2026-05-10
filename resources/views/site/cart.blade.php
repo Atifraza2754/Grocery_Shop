@@ -50,6 +50,37 @@
         color: var(--gs-muted);
     }
     .empty-cart i { font-size: 4rem; color: #d0d7de; margin-bottom: 1rem; }
+
+    /* Mobile Screen Fixes */
+    @media (max-width: 767px) {
+        .cart-row {
+            flex-wrap: wrap; /* Items ko next line par aane ki permission deta hai */
+            position: relative; 
+        }
+        .cart-info {
+            /* Text wale section ko forced full space deta hai (Image ki width nikal kar) */
+            flex: 0 0 calc(100% - 72px - 1rem); 
+            padding-right: 25px; /* Trash button ke liye space chhodne ke liye */
+        }
+        .qty-stepper {
+            /* Stepper ko image ke aage text ke bilkul neche align karega */
+            margin-left: calc(72px + 1rem);
+            margin-top: 0.5rem;
+        }
+        .cart-line-total {
+            /* Total price ko usi line mein right side par bhej dega */
+            margin-left: auto;
+            margin-top: 0.5rem;
+            display: flex;
+            align-items: center;
+        }
+        .cart-row > button.text-danger {
+            /* Delete button ko top right corner pe fix kar dega */
+            position: absolute;
+            top: 1rem;
+            right: 0.5rem;
+        }
+    }
 </style>
 @endpush
 

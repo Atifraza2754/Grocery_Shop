@@ -80,16 +80,17 @@
         color: inherit;
     }
     .product-img-wrap {
-        height: 170px;
-        background: #f8f9fa;
-        display: flex; align-items: center; justify-content: center;
-        overflow: hidden;
-    }
-    .product-img {
-        max-height: 100%; max-width: 100%;
-        object-fit: contain; padding: 12px;
-        transition: transform .3s ease;
-    }
+    height: 170px;
+    display: block; /* Flex display ko khatam karein taake center na ho */
+    overflow: hidden;
+    background: #f8f9fa;
+}
+.product-img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover; /* Taake image pure container ko cover kare jese pehli image mein hai */
+    padding: 0 !important; /* Inner padding ko khatam karein */
+}
     .product-card:hover .product-img { transform: scale(1.05); }
     .product-fallback {
         font-size: 3rem; color: #ccc;
@@ -134,6 +135,49 @@
         color: var(--gs-muted); width: 100%;
     }
     .no-results i { font-size: 2.5rem; margin-bottom: .5rem; opacity: .5; }
+
+   @media (max-width: 767px) {
+        .hero {
+            display: none !important;
+        }
+        
+        /* Force 2 columns on mobile */
+        #productsGrid > div {
+            width: 50% !important;
+        }
+
+        /* Compact Product Card for Mobile */
+        .product-img-wrap {
+            height: 100px; /* Image height kam kar di */
+            padding: 6px;
+        }
+        .product-body {
+            padding: 0.5rem; /* Padding choti kar di */
+        }
+        .product-title {
+            font-size: 0.85rem; /* Title font chota kiya */
+            line-height: 1.2;
+            min-height: 2.4em; /* 2 lines ke liye fix space */
+            margin-bottom: 4px;
+        }
+        .product-price {
+            font-size: 0.95rem; /* Price thori choti ki */
+            margin-bottom: 0.4rem;
+        }
+        .product-price .unit {
+            font-size: 0.7rem;
+        }
+        .stock-pill {
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            margin-bottom: 4px;
+        }
+        .btn-add {
+            padding: 5px 0; /* Button ki height kam kar di */
+            font-size: 0.85rem;
+            border-radius: 6px;
+        }
+    }
 </style>
 @endpush
 
@@ -142,6 +186,7 @@
 
     {{-- ============ HERO ============ --}}
     <div class="hero d-flex flex-wrap align-items-center justify-content-between">
+        
         <div>
             <span class="badge-tag"><i class="fa-solid fa-bolt me-1"></i> Fresh & Fast</span>
             <h1 class="display-6">Order Groceries</h1>
@@ -160,11 +205,8 @@
 
     {{-- ============ CATEGORY TABS ============ --}}
     <div class="category-container mb-4" id="categoryTabs">
-        <button class="category-btn active" data-cat="all">
-            <i class="fa-solid fa-grip me-2"></i>All
-        </button>
         @foreach ($categories as $cat)
-            <button class="category-btn" data-cat="{{ $cat->id }}">
+            <button class="category-btn {{ $loop->first ? 'active' : '' }}" data-cat="{{ $cat->id }}">
                 <i class="fa-solid fa-leaf me-2"></i>{{ $cat->name }}
             </button>
         @endforeach
@@ -261,17 +303,19 @@
 (function () {
     const grid = document.getElementById('productsGrid');
     const search = document.getElementById('searchInput');
-    let currentCat = 'all';
-    let currentQuery = '';
-
     const groceryView = document.getElementById('groceryView');
+    
+    // Automatically get the active category on initial load
+    const activeBtn = document.querySelector('.category-btn.active');
+    let currentCat = activeBtn ? activeBtn.dataset.cat : '';
+    let currentQuery = '';
 
     function filter() {
         const q = currentQuery.toLowerCase().trim();
         let shown = 0;
 
         grid.querySelectorAll('[data-product]').forEach(card => {
-            const matchCat = currentCat === 'all' || card.dataset.cat === String(currentCat);
+            const matchCat = card.dataset.cat === String(currentCat);
             const name = (card.dataset.name || '').toLowerCase();
             const matchQ = !q || name.includes(q);
             const visible = matchCat && matchQ;
@@ -423,6 +467,11 @@
             btn.disabled = false;
         }
     });
+
+    // Execute filter immediately on load to show only the default active category
+    if (currentCat && currentCat !== 'grocery') {
+        filter();
+    }
 })();
 </script>
 @endpush

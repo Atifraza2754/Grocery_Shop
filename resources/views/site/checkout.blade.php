@@ -148,8 +148,8 @@
                     <div class="row g-2">
                         @foreach ([
                             'cod'      => ['Cash on Delivery', 'fa-truck'],
-                            'cash'     => ['Cash', 'fa-money-bill-wave'],
-                            'transfer' => ['Bank Transfer', 'fa-building-columns'],
+                            'cash'     => ['Jazz Cash', 'fa-money-bill-wave'],
+                            // 'transfer' => ['Bank Transfer', 'fa-building-columns'],
                         ] as $val => $cfg)
                             <div class="col-md-4">
                                 <label class="pay-option">

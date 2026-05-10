@@ -22,13 +22,13 @@
         </div>
 
         <div class="product-body">
-            @if (!$inStock)
+            {{-- @if (!$inStock)
                 <span class="stock-pill stock-out">Out of stock</span>
             @elseif ($lowStock)
                 <span class="stock-pill stock-low">Low stock</span>
             @else
                 <span class="stock-pill stock-in">In stock</span>
-            @endif
+            @endif --}}
 
             <div class="product-title">{{ $product->name }}</div>
 
@@ -42,7 +42,7 @@
                     <button class="btn-add"
                             type="button"
                             data-add-to-cart="{{ $product->id }}"
-                            onclick="event.preventDefault(); event.stopPropagation();">
+                            onclick="event.preventDefault();">
                         <i class="fa-solid fa-plus me-1"></i> Add to Cart
                     </button>
                 @else
