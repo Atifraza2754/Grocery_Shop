@@ -22,6 +22,11 @@ class ProductController extends Controller
             ->limit(4)
             ->get();
 
+        // If the request is AJAX (modal), return a partial view without layout
+        if (request()->ajax()) {
+            return view('site.products._modal', compact('product', 'related'));
+        }
+
         return view('site.products.show', compact('product', 'related'));
     }
 }

@@ -154,6 +154,8 @@ class CheckoutController extends Controller
                 ->delay(now()->addSeconds($delay));
             SendOrderWhatsApp::dispatch($order->id, 'customer')
                 ->delay(now()->addSeconds($delay));
+            // Trigger client-side one-time WhatsApp auto-open on the next page load
+            session()->flash('open_whatsapp', true);
         } catch (\Throwable $e) {
             \Log::warning('Could not dispatch WhatsApp jobs: ' . $e->getMessage());
         }

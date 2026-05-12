@@ -14,7 +14,7 @@ return new class extends Migration
                 ->constrained('products')
                 ->cascadeOnUpdate()
                 ->cascadeOnDelete();
-            $table->string('path');
+            $table->string('path')->nullable();
             $table->unsignedInteger('sort_order')->default(0);
             $table->timestamps();
         });

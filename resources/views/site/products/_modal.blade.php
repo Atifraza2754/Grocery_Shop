@@ -1,8 +1,3 @@
-@extends('site.layouts.app')
-
-@section('title', $product->name)
-
-@push('styles')
 <style>
     .breadcrumb a { color: var(--gs-muted); text-decoration: none; }
     .breadcrumb a:hover { color: var(--gs-primary); }
@@ -66,6 +61,29 @@
         outline: none;
     }
 
+    /* Modal bottom qty / add layout (matches provided screenshot) */
+    .modal-qty-row {
+        display: flex; align-items: center; gap: 12px; width: 100%;
+        max-width: 520px; margin: 0 auto;
+    }
+    .modal-qty-row .qty-circle {
+        width: 44px; height: 44px; border-radius: 999px; background: #fff;
+        display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--gs-border);
+        font-size: 1.25rem; color: var(--gs-primary-dark);
+    }
+    .modal-qty-row .qty-circle.btn-plus {
+        background: var(--gs-primary); color: #fff; border-color: var(--gs-primary);
+    }
+    .modal-qty-row .qty-display {
+        flex: 1; background: #fff; border-radius: 999px; padding: 10px 16px; text-align: center;
+        font-weight: 700; color: #222; border: 1px solid var(--gs-border);
+    }
+    @media (max-width: 576px) {
+        .modal-qty-row { gap: 10px; }
+        .modal-qty-row .qty-circle { width: 44px; height: 44px; }
+        .modal-qty-row .qty-display { padding: 12px 10px; }
+    }
+
     .items-included {
         background: var(--gs-primary-soft);
         border-radius: 12px; padding: 1rem;
@@ -86,23 +104,14 @@
     .product-price { color: var(--gs-primary); font-weight: 700; font-size: 1rem; margin-bottom: .5rem; }
     .product-price .unit { color: var(--gs-muted); font-size: .75rem; font-weight: 500; }
 </style>
-@endpush
 
-@section('content')
-<div class="container py-4">
+<div class="container py-4 product-modal-root" data-product-id="{{ $product->id }}">
 
-    {{-- Breadcrumb --}}
-    <nav class="mb-3" aria-label="breadcrumb">
-        <ol class="breadcrumb mb-0">
-            <li class="breadcrumb-item"><a href="{{ route('site.home') }}">Home</a></li>
-            @if ($product->category)
-                <li class="breadcrumb-item">
-                    <a href="{{ route('site.home') }}#cat-{{ $product->category_id }}">{{ $product->category->name }}</a>
-                </li>
-            @endif
-            <li class="breadcrumb-item active" aria-current="page">{{ $product->name }}</li>
-        </ol>
-    </nav>
+    {{-- Breadcrumb (optional in modal) --}}
+        <div class="d-flex align-items-center justify-content-center mb-3 position-relative">
+            <h4 class="mb-0">Product Details</h4>
+            <button type="button" class="btn-close position-absolute end-0 me-3" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
 
     <div class="row g-4">
         {{-- ============ GALLERY ============ --}}
@@ -195,113 +204,42 @@
                 @endif
 
                 {{-- ADD TO CART --}}
-                <div class="d-flex flex-wrap align-items-center gap-3 my-3">
-                    <div class="qty-stepper">
-                        <button type="button" id="qtyMinus">−</button>
-                        <input type="number" id="qtyInput" value="1" min="1" max="{{ max(1, min($product->low_stock_threshold ?? $product->stock_qty, $product->stock_qty)) }}">
-                        <button type="button" id="qtyPlus">+</button>
+                <div class="my-3">
+                    <div class="modal-qty-row">
+                        <button class="qty-circle" id="qtyMinus" type="button">−</button>
+                        <div class="qty-display" id="qtyDisplay">1 Selected</div>
+                        <button class="qty-circle btn-plus" id="qtyPlus" type="button"><i class="fa-solid fa-plus"></i></button>
+                        <input type="number" id="qtyInput" value="1" min="1" max="{{ max(1, min($product->low_stock_threshold ?? $product->stock_qty, $product->stock_qty)) }}" style="display:none;">
                     </div>
 
-                    @if ($product->stock_qty > 0)
-                        <button class="btn-primary-gs flex-grow-1" id="pdAddBtn">
-                            <i class="fa-solid fa-basket-shopping me-2"></i> Add to Cart
-                        </button>
-                    @else
-                        <button class="btn-primary-gs flex-grow-1" disabled style="opacity:.5;">
-                            <i class="fa-solid fa-ban me-2"></i> Unavailable
-                        </button>
-                    @endif
+                       {{-- FULL DESCRIPTION --}}
+                        @if ($product->description)
+                            <div class="mt-3">
+                                <div class="pd-section-title">
+                                    <i class="fa-solid fa-circle-info me-1"></i>Product Details
+                                </div>
+                                <div class="text-muted">{!! $product->description !!}</div>
+                            </div>
+                        @endif
+
+                    <div class="mt-3">
+                        @if ($product->stock_qty > 0)
+                            <button class="btn-primary-gs w-100" id="pdAddBtn">
+                                <i class="fa-solid fa-basket-shopping me-2"></i> Add to Cart
+                            </button>
+                        @else
+                            <button class="btn-primary-gs w-100" disabled style="opacity:.5;">
+                                <i class="fa-solid fa-ban me-2"></i> Unavailable
+                            </button>
+                        @endif
+                    </div>
                 </div>
 
-                {{-- FULL DESCRIPTION --}}
-                @if ($product->description)
-                    <div class="mt-3">
-                        <div class="pd-section-title">
-                            <i class="fa-solid fa-circle-info me-1"></i>Description
-                        </div>
-                        <div class="text-muted">{!! $product->description !!}</div>
-                    </div>
-                @endif
+             
             </div>
         </div>
     </div>
 
-    {{-- ============ RELATED ============ --}}
-    @if ($related->count())
-        <h4 class="mt-5 mb-3">Related products</h4>
-        <div class="row g-3">
-            @foreach ($related as $r)
-                @php
-                    $rImg = $r->image ? \Illuminate\Support\Facades\Storage::url($r->image) : null;
-                @endphp
-                <div class="col-6 col-md-3">
-                    <a href="{{ route('site.product.show', $r->slug) }}" class="product-card">
-                        <div class="product-img-wrap">
-                            @if ($rImg)
-                                <img src="{{ $rImg }}" alt="{{ $r->name }}" class="product-img">
-                            @else
-                                <i class="fa-solid fa-image" style="font-size: 3rem; color: #ccc;"></i>
-                            @endif
-                        </div>
-                        <div class="product-body">
-                            <div class="product-title">{{ $r->name }}</div>
-                            <div class="product-price">
-                                Rs {{ number_format((float) $r->price, 0) }}
-                                <span class="unit">/ {{ $r->unit }}</span>
-                            </div>
-                        </div>
-                    </a>
-                </div>
-            @endforeach
-        </div>
-    @endif
+    {{-- Related products removed from modal as requested --}}
 
 </div>
-@endsection
-
-@push('scripts')
-<script>
-(function () {
-    // Gallery thumbs
-    const main = document.getElementById('pdMainImg');
-    document.querySelectorAll('.pd-thumb').forEach(t => {
-        t.addEventListener('click', () => {
-            document.querySelectorAll('.pd-thumb').forEach(x => x.classList.remove('active'));
-            t.classList.add('active');
-            if (main) main.src = t.dataset.img;
-        });
-    });
-
-    // Qty stepper
-    const qty = document.getElementById('qtyInput');
-    const max = parseInt(qty?.max || '999');
-    document.getElementById('qtyMinus')?.addEventListener('click', () => {
-        const v = Math.max(1, parseInt(qty.value || '1') - 1);
-        qty.value = v;
-    });
-    document.getElementById('qtyPlus')?.addEventListener('click', () => {
-        const v = Math.min(max, parseInt(qty.value || '1') + 1);
-        qty.value = v;
-    });
-
-    // Add to cart
-    document.getElementById('pdAddBtn')?.addEventListener('click', async (e) => {
-        const btn = e.currentTarget;
-        const q = Math.max(1, parseInt(qty.value || '1'));
-        btn.disabled = true;
-        const orig = btn.innerHTML;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Adding...';
-
-        const { ok } = await window.GS.addToCart({{ $product->id }}, q);
-
-        if (ok) {
-            btn.innerHTML = '<i class="fa-solid fa-check me-2"></i> Added to cart';
-            setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 1300);
-        } else {
-            btn.innerHTML = orig;
-            btn.disabled = false;
-        }
-    });
-})();
-</script>
-@endpush

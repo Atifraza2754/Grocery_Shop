@@ -579,12 +579,11 @@ class OrderResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        // Eager-load common relationships for the list view to keep it snappy.
-        // We do NOT remove the SoftDeletingScope here — that combination with
-        // TrashedFilter previously caused "newQueryWithoutRelationships() on null"
-        // when filters re-applied during a Livewire tab click.
-        return parent::getEloquentQuery()
-            ->with(['area', 'ambassador']);
+        // Keep this dead simple. Filament adds eager loading for dot-notation
+        // columns automatically. Returning a hand-modified Builder with .with()
+        // here was the culprit behind the "newQueryWithoutRelationships() on null"
+        // error during Livewire tab clicks.
+        return parent::getEloquentQuery();
     }
 
     public static function getRelations(): array

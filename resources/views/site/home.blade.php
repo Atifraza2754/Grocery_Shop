@@ -129,6 +129,21 @@
     .btn-add:active { transform: scale(.97); }
     .btn-add:disabled { background: #adb5bd; cursor: not-allowed; }
 
+    /* Quantity control shown after initial Add-to-cart on product cards */
+    .cart-qty-wrap {
+        display: inline-flex; align-items: center; justify-content: space-between;
+        gap: 8px; width: 100%; background: rgba(46,125,50,0.06);
+        padding: 6px; border-radius: 9px; box-sizing: border-box;
+    }
+    .cart-qty-wrap .qty-btn {
+        border: none; background: transparent; color: var(--gs-primary-dark);
+        width: 36px; height: 36px; border-radius: 8px; font-weight: 700;
+        display: inline-flex; align-items: center; justify-content: center;
+    }
+    .cart-qty-wrap .qty-value {
+        min-width: 30px; text-align: center; font-weight: 700; color: var(--gs-primary-dark);
+    }
+
     /* No-results */
     .no-results {
         text-align: center; padding: 50px 20px;
@@ -350,6 +365,121 @@
         }
     }
 
+    // Open product details in modal (AJAX)
+    async function openProductModal(url) {
+        const modalEl = document.getElementById('productModal');
+        const modalContent = document.getElementById('productModalContent');
+        modalContent.innerHTML = '<div class="p-4 text-center"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>';
+        try {
+            const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!res.ok) throw new Error('Failed');
+            const html = await res.text();
+            modalContent.innerHTML = html;
+            const bs = new bootstrap.Modal(modalEl);
+            bs.show();
+            initProductModal(modalContent, bs);
+        } catch (err) {
+            modalContent.innerHTML = '<div class="p-4 text-center text-danger">Could not load product details.</div>';
+            const bs = new bootstrap.Modal(modalEl);
+            bs.show();
+        }
+    }
+
+    // Initialize behaviours for content injected into the modal
+    function initProductModal(rootEl, bsInstance) {
+        if (!rootEl) return;
+        const modalRoot = rootEl.querySelector('.product-modal-root') || rootEl;
+
+        // Gallery thumbs
+        const main = modalRoot.querySelector('#pdMainImg');
+        modalRoot.querySelectorAll('.pd-thumb').forEach(t => {
+            t.addEventListener('click', () => {
+                modalRoot.querySelectorAll('.pd-thumb').forEach(x => x.classList.remove('active'));
+                t.classList.add('active');
+                if (main) main.src = t.dataset.img;
+            });
+        });
+
+        // Qty stepper + visible selected display
+        const qty = modalRoot.querySelector('#qtyInput');
+        const max = parseInt(qty?.max || '999');
+        const qtyDisplay = modalRoot.querySelector('#qtyDisplay');
+
+        function updateQtyDisplay() {
+            if (!qtyDisplay || !qty) return;
+            const v = parseInt(qty.value || '1');
+            qtyDisplay.textContent = v + ' Selected';
+        }
+
+        modalRoot.querySelector('#qtyMinus')?.addEventListener('click', () => {
+            const v = Math.max(1, parseInt(qty.value || '1') - 1);
+            qty.value = v;
+            updateQtyDisplay();
+        });
+        modalRoot.querySelector('#qtyPlus')?.addEventListener('click', () => {
+            const v = Math.min(max, parseInt(qty.value || '1') + 1);
+            qty.value = v;
+            updateQtyDisplay();
+        });
+        // initialize display
+        updateQtyDisplay();
+
+        // Add to cart from modal
+        modalRoot.querySelector('#pdAddBtn')?.addEventListener('click', async (e) => {
+            const btn = e.currentTarget;
+            const q = Math.max(1, parseInt(qty.value || '1'));
+            btn.disabled = true;
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-2"></i> Adding...';
+
+            const productId = modalRoot.dataset.productId || modalRoot.querySelector('.product-modal-root')?.dataset.productId;
+            const { ok, data } = await window.GS.addToCart(parseInt(productId), q);
+
+            if (ok) {
+                btn.innerHTML = '<i class="fa-solid fa-check me-2"></i> Added to cart';
+                // update grid card if present
+                try {
+                    const card = document.querySelector('#productsGrid a.product-card[data-product-id="' + productId + '"]');
+                    if (card) {
+                        const existingQtyWrap = card.querySelector('.cart-qty-wrap');
+                        if (existingQtyWrap) {
+                            const qtyEl = existingQtyWrap.querySelector('.qty-value');
+                            qtyEl.textContent = (parseInt(qtyEl.textContent || '0') + q).toString();
+                            existingQtyWrap.setAttribute('data-in-cart', 'true');
+                            if (!existingQtyWrap.dataset.maxAdd) {
+                                const sourceMax = card.dataset.maxAdd || card.querySelector('[data-add-to-cart]')?.dataset?.maxAdd || '999';
+                                existingQtyWrap.dataset.maxAdd = sourceMax;
+                            }
+                        } else {
+                            const wrap = document.createElement('div');
+                            wrap.className = 'cart-qty-wrap';
+                            wrap.setAttribute('data-in-cart', 'true');
+                            const sourceMax = card.dataset.maxAdd || card.querySelector('[data-add-to-cart]')?.dataset?.maxAdd || '999';
+                            wrap.setAttribute('data-max-add', sourceMax);
+                            wrap.innerHTML = `\n  <button class="qty-btn" data-cart-dec="${productId}" type="button">-</button>\n                                
+                            <div class="qty-value">${q}</div>\n                                <button class="qty-btn" data-cart-inc="${productId}" type="button">+</button>\n                            `;
+                            const btn = card.querySelector('[data-add-to-cart]');
+                            if (btn) btn.replaceWith(wrap);
+                        }
+                    }
+                } catch (err) { /* ignore */ }
+
+                setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 1300);
+            } else {
+                btn.innerHTML = orig;
+                btn.disabled = false;
+            }
+        });
+
+        // Make related cards open the modal too
+        modalRoot.querySelectorAll('a.product-card[data-product-slug]').forEach(a => {
+            a.addEventListener('click', (ev) => {
+                ev.preventDefault();
+                openProductModal(a.href);
+            });
+        });
+    }
+
     // Category click
     document.querySelectorAll('.category-btn').forEach(btn => {
         btn.addEventListener('click', () => {
@@ -445,27 +575,137 @@
         }, 150);
     });
 
-    // Add to cart
+    // Add to cart: on the home product grid transform Add -> qty controls, elsewhere keep quick-add
     document.addEventListener('click', async (e) => {
+        // Increment button in qty control
+        const inc = e.target.closest('[data-cart-inc]');
+        if (inc) {
+            e.preventDefault();
+            const pid = parseInt(inc.dataset.cartInc);
+            const wrap = inc.closest('.cart-qty-wrap');
+            const qtyEl = wrap && wrap.querySelector('.qty-value');
+            let qty = parseInt(qtyEl ? qtyEl.textContent : '0') || 0;
+
+            // respect per-product max-add (min of low_stock_threshold and stock_qty)
+            const maxAdd = parseInt(wrap?.dataset.maxAdd || wrap?.closest('a.product-card')?.dataset.maxAdd || '999', 10);
+            if (qty >= maxAdd) {
+                window.GS.toast('Maximum allowed for this product is ' + maxAdd, 'warn');
+                return;
+            }
+
+            try {
+                inc.disabled = true;
+                const { ok, data } = await window.GS.addToCart(pid, 1);
+                if (ok) {
+                    qty++;
+                    if (qtyEl) qtyEl.textContent = qty;
+                    // mark as present in cart after successful first add
+                    if (wrap) wrap.setAttribute('data-in-cart', 'true');
+                    if (data && data.count !== undefined) window.GS.setCartCount(data.count);
+                }
+            } finally { inc.disabled = false; }
+            return;
+        }
+
+        // Decrement / remove button in qty control
+        const dec = e.target.closest('[data-cart-dec]');
+        if (dec) {
+            e.preventDefault();
+            const pid = parseInt(dec.dataset.cartDec);
+            const wrap = dec.closest('.cart-qty-wrap');
+            const qtyEl = wrap && wrap.querySelector('.qty-value');
+            let qty = parseInt(qtyEl ? qtyEl.textContent : '0') || 0;
+            const inCart = wrap && wrap.getAttribute('data-in-cart') === 'true';
+
+            if (!inCart) {
+                // not yet added on server — simply restore the Add button locally
+                const addBtnHtml = `<button class="btn-add" type="button" data-add-to-cart="${pid}" onclick="event.preventDefault();"><i class="fa-solid fa-plus me-1"></i> Add to Cart</button>`;
+                const el = document.createElement('div');
+                el.innerHTML = addBtnHtml;
+                wrap.replaceWith(el.firstElementChild);
+                return;
+            }
+
+            if (qty <= 1) {
+                // remove from cart on server
+                try {
+                    dec.disabled = true;
+                    const { ok, data } = await window.GS.post(window.GS.urls.cartRemove, { product_id: pid });
+                    if (ok) {
+                        const addBtnHtml = `<button class="btn-add" type="button" data-add-to-cart="${pid}" onclick="event.preventDefault();"><i class="fa-solid fa-plus me-1"></i> Add to Cart</button>`;
+                        const el = document.createElement('div');
+                        el.innerHTML = addBtnHtml;
+                        wrap.replaceWith(el.firstElementChild);
+                        if (data && data.count !== undefined) window.GS.setCartCount(data.count);
+                    }
+                } finally { dec.disabled = false; }
+            } else {
+                // update to new qty
+                const newQty = qty - 1;
+                try {
+                    dec.disabled = true;
+                    const { ok, data } = await window.GS.post(window.GS.urls.cartUpdate, { product_id: pid, qty: newQty });
+                    if (ok) {
+                        if (qtyEl) qtyEl.textContent = newQty;
+                        if (data && data.count !== undefined) window.GS.setCartCount(data.count);
+                    }
+                } finally { dec.disabled = false; }
+            }
+            return;
+        }
+
+        // Product card click -> open modal (ignore clicks on interactive elements)
+        const cardLink = e.target.closest('a.product-card[data-product-slug]');
+        if (cardLink) {
+            // if click was on interactive element inside the card, let other handlers manage it
+            if (e.target.closest('[data-add-to-cart]') || e.target.closest('[data-cart-inc]') || e.target.closest('[data-cart-dec]') || e.target.closest('.qty-btn') || e.target.closest('button')) {
+                // allow existing handlers to run
+            } else {
+                e.preventDefault();
+                openProductModal(cardLink.href);
+                return;
+            }
+        }
+
+        // Initial Add-to-cart click
         const btn = e.target.closest('[data-add-to-cart]');
         if (!btn) return;
         e.preventDefault();
         const id = parseInt(btn.dataset.addToCart);
         if (!id) return;
 
-        btn.disabled = true;
-        const orig = btn.innerHTML;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-
-        const { ok } = await window.GS.addToCart(id, 1);
-
-        if (ok) {
-            btn.innerHTML = '<i class="fa-solid fa-check"></i> Added';
-            setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 1100);
-        } else {
-            btn.innerHTML = orig;
-            btn.disabled = false;
+        // Only transform into a qty control for cards inside the home products grid
+        const inProductsGrid = btn.closest('#productsGrid');
+        if (!inProductsGrid) {
+            // fallback: keep previous behaviour on other pages
+            btn.disabled = true;
+            const orig = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+            const { ok } = await window.GS.addToCart(id, 1);
+            if (ok) {
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> Added';
+                setTimeout(() => { btn.innerHTML = orig; btn.disabled = false; }, 1100);
+            } else {
+                btn.innerHTML = orig;
+                btn.disabled = false;
+            }
+            return;
         }
+
+        // For product cards in the grid: do NOT call server yet — just swap to qty control UI
+        const wrap = document.createElement('div');
+        wrap.className = 'cart-qty-wrap';
+        const maxAddFromBtn = btn?.dataset?.maxAdd;
+        const maxAddFromCard = btn?.closest('a.product-card')?.dataset?.maxAdd;
+        const finalMaxAdd = maxAddFromBtn || maxAddFromCard || '999';
+        wrap.setAttribute('data-max-add', finalMaxAdd);
+        wrap.setAttribute('data-in-cart', 'false');
+        wrap.innerHTML = `
+            <button class="qty-btn" data-cart-dec="${id}" type="button">-</button>
+            <div class="qty-value">0</div>
+            <button class="qty-btn" data-cart-inc="${id}" type="button">+</button>
+        `;
+        btn.replaceWith(wrap);
     });
 
     // Execute filter immediately on load to show only the default active category

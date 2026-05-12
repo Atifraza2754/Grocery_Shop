@@ -12,7 +12,11 @@
      data-cat="{{ $product->category_id }}"
      data-name="{{ $product->name }}">
 
-    <a href="{{ route('site.product.show', $product->slug) }}" class="product-card">
+        <a href="{{ route('site.product.show', $product->slug) }}"
+            class="product-card"
+            data-product-slug="{{ $product->slug }}"
+            data-product-id="{{ $product->id }}"
+            data-max-add="{{ max(1, min($product->low_stock_threshold ?? $product->stock_qty, $product->stock_qty)) }}">
         <div class="product-img-wrap">
             @if ($imgUrl)
                 <img src="{{ $imgUrl }}" alt="{{ $product->name }}" class="product-img">
@@ -42,6 +46,7 @@
                     <button class="btn-add"
                             type="button"
                             data-add-to-cart="{{ $product->id }}"
+                            data-max-add="{{ max(1, min($product->low_stock_threshold ?? $product->stock_qty, $product->stock_qty)) }}"
                             onclick="event.preventDefault();">
                         <i class="fa-solid fa-plus me-1"></i> Add to Cart
                     </button>

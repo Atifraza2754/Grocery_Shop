@@ -244,6 +244,17 @@
     };
 </script>
 
+<!-- Product modal (used for product details loaded via AJAX) -->
+<div class="modal fade" id="productModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl modal-fullscreen-sm-down">
+        <div class="modal-content">
+            <div class="modal-body p-0" id="productModalContent">
+                <!-- injected content -->
+            </div>
+        </div>
+    </div>
+</div>
+
 @stack('scripts')
 
 </body>

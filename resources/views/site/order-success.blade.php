@@ -66,6 +66,38 @@
         display: flex; align-items: center; justify-content: center; overflow: hidden;
     }
     .item-thumb img { max-width: 100%; max-height: 100%; object-fit: contain; padding: 4px; }
+
+    /* WhatsApp button */
+    .btn-whatsapp {
+        background: #25D366; color: #fff; border: none; display: inline-flex; gap: .5rem;
+        align-items: center; padding: 10px 16px; border-radius: 999px; font-weight:700;
+        box-shadow: 0 6px 18px rgba(37,211,102,0.12);
+        text-decoration: none;
+    }
+
+    /* Ensure only one set of actions shows: desktop vs mobile sticky */
+    .desktop-actions { display: none !important; }
+    .sticky-actions { display: none !important; }
+
+    /* Desktop: show desktop-actions, hide sticky bar */
+    @media (min-width: 576px) {
+        .desktop-actions { display: flex !important; gap: .75rem; }
+        .sticky-actions { display: none !important; }
+    }
+
+    /* Mobile: show sticky bar, hide desktop actions, reduce sizes */
+    @media (max-width: 575.98px) {
+        .desktop-actions { display: none !important; }
+        .sticky-actions { display: flex !important; position: fixed; left: 0; right: 0; bottom: 12px; z-index: 1200; justify-content: center; }
+        .sticky-actions .bar { width: calc(100% - 32px); max-width: 920px; display:flex; gap: 8px; }
+        .sticky-actions .bar a { flex: 1; text-align: center; padding: 8px 10px; }
+
+        /* reduce sizes for mobile to match screenshot 1 */
+        .success-icon { width: 54px; height: 54px; font-size: 1.35rem; margin-bottom: .6rem; }
+        .success-banner h2 { font-size: 1.05rem; line-height: 1.2; }
+        .success-banner p, .success-banner .text-muted { font-size: .86rem; }
+        .btn-whatsapp { padding: 8px 12px; font-size: .95rem; border-radius: 22px; }
+    }
 </style>
 @endpush
 
@@ -84,7 +116,7 @@
 @section('content')
 <div class="container py-4" style="max-width: 920px;">
 
-    {{-- BANNER --}}
+    {{-- BANNER: Urdu style like the screenshot --}}
     <div class="success-banner">
         <div class="success-icon">
             @if ($cancelled)
@@ -93,22 +125,22 @@
                 <i class="fa-solid fa-check"></i>
             @endif
         </div>
-        <h2 style="font-weight: 800; color: var(--gs-primary-dark); margin: 0;">
-            @if ($cancelled)
-                Order cancelled
-            @else
-                Thank you! Order placed.
-            @endif
-        </h2>
-        <p class="mb-0 text-muted">
-            Order number:
-            <strong style="font-family: monospace; color: var(--gs-primary-dark); user-select: all;">
-                {{ $order->order_no }}
-            </strong>
-        </p>
-        <p class="text-muted small mb-0 mt-2">
-            We'll contact you on <strong>{{ $order->customer_phone }}</strong> shortly to confirm.
-        </p>
+        @if ($cancelled)
+            <h2 style="font-weight: 800; color: var(--gs-primary-dark); margin: 0;">Order cancelled</h2>
+        @else
+            <h2 style="font-weight: 800; color: var(--gs-primary-dark); margin: 0;">🎉 شکریہ! آپ کا آرڈر ریکارڈ ہو چکا ہے۔</h2>
+            <p class="mb-0 mt-2" style="font-family: monospace; color: var(--gs-primary-dark);">
+                Order number:
+                <strong style="user-select: all;">{{ $order->order_no }}</strong>
+            </p>
+            <p class="text-muted small mb-0 mt-2">آڈر کی فوری کنفرمیشن اور پراسسنگ کے لیے WhatsApp پر "Send" کر دیں</p>
+            <div class="mt-3">
+                <a href="#" id="gsOpenWhatsApp" class="btn-whatsapp">
+                    <i class="fa-brands fa-whatsapp"></i>
+                    <span>WhatsApp Click to Chat</span>
+                </a>
+            </div>
+        @endif
     </div>
 
     {{-- TIMELINE --}}
@@ -199,7 +231,7 @@
         </div>
     </div>
 
-    <div class="d-flex gap-2 mt-4 flex-wrap">
+    <div class="d-flex gap-2 mt-4 flex-wrap desktop-actions">
         <a href="{{ route('site.home') }}" class="btn-primary-gs text-decoration-none">
             <i class="fa-solid fa-house me-1"></i> Continue shopping
         </a>
@@ -208,5 +240,53 @@
             <i class="fa-solid fa-truck me-1"></i> Track this order
         </a>
     </div>
-</div>
+
+    {{-- Sticky bottom actions (Continue / Track) --}}
+    <div class="sticky-actions" aria-hidden="false">
+        <div class="bar">
+            <a href="{{ route('site.home') }}" class="btn-primary-gs text-decoration-none">
+                <i class="fa-solid fa-house me-1"></i> Continue shopping
+            </a>
+            <a href="{{ route('site.track') }}?phone={{ urlencode($order->customer_phone) }}"
+               class="btn btn-outline-gs">
+                <i class="fa-solid fa-truck me-1"></i> Track this order
+            </a>
+        </div>
+    </div>
+
+
+@push('scripts')
+<script>
+    (function(){
+        const waNumber = @json(config('services.whatsapp.admin_phone'));
+        if (! waNumber) return; // no admin phone configured — do nothing
+
+        const message = {!! json_encode($order->toShareableText()) !!};
+        const encoded = encodeURIComponent(message);
+
+        const waMobile = 'https://wa.me/' + waNumber + '?text=' + encoded;
+        const waWeb    = 'https://web.whatsapp.com/send?phone=' + waNumber + '&text=' + encoded;
+
+        const isMobile = /Mobi|Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent || '');
+        const target = isMobile ? waMobile : waWeb;
+
+        // Click handler for visible WhatsApp button
+        const btn = document.getElementById('gsOpenWhatsApp');
+        if (btn) {
+            btn.setAttribute('href', target);
+            btn.addEventListener('click', function(e){
+                e.preventDefault();
+                window.open(target, '_blank');
+            });
+        }
+
+        // Auto-open after configured delay (default 5s) — only when redirected here after placing order
+        @if(session('open_whatsapp'))
+            const delaySec = parseInt(@json(config('services.whatsapp.send_delay_sec', 5)), 10) || 5;
+            setTimeout(() => { try { window.open(target, '_blank'); } catch (e) { /* ignore */ } }, delaySec * 1000);
+        @endif
+    })();
+</script>
+@endpush
+
 @endsection
