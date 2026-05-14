@@ -43,6 +43,19 @@
         transform: translateY(-50%); color: var(--gs-muted);
     }
 
+    /* Mobile delivery banner (shows only on small screens) */
+    .mobile-delivery-banner {
+        background: #a83b2b; /* deep red similar to site banner */
+        color: #fff;
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-size: 14px;
+        text-align: center;
+    }
+    .msg{
+        margin-top:-15px;
+    }
+
     /* Category tabs */
     .category-container {
         display: flex; overflow-x: auto; gap: 10px;
@@ -99,7 +112,7 @@
         padding: .85rem; display: flex; flex-direction: column; flex: 1;
     }
     .product-title {
-        font-size: 0.95rem; font-weight: 600; margin-bottom: 4px;
+        font-size: 14px; font-weight: 600; margin-bottom: 4px;
         line-height: 1.3;
         display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
         overflow: hidden;
@@ -192,6 +205,7 @@
             font-size: 0.85rem;
             border-radius: 6px;
         }
+
     }
 </style>
 @endpush
@@ -213,6 +227,13 @@
     </div>
 
     {{-- ============ SEARCH ============ --}}
+    {{-- Mobile-only delivery notice shown above the search on small screens --}}
+    <div class="d-block d-md-none mb-2 msg">
+        <div class="mobile-delivery-banner">
+            Order before 9pm for next-day delivery; Karachi only, no same-day service.
+        </div>
+    </div>
+
     <div class="search-container mb-3">
         <i class="fa-solid fa-magnifying-glass search-icon"></i>
         <input type="text" id="searchInput" class="form-control" placeholder="Search products...">

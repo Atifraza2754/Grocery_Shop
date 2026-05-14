@@ -158,7 +158,7 @@ class CommissionResource extends Resource
 
                 Tables\Filters\Filter::make('this_month')
                     ->label('This month')
-                    ->query(fn (Builder $q) => $q->whereBetween('created_at', [
+                    ->query(fn (Builder $query) => $query->whereBetween('created_at', [
                         now()->startOfMonth(), now()->endOfMonth(),
                     ])),
             ])

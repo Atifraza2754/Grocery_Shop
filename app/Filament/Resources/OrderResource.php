@@ -523,7 +523,7 @@ class OrderResource extends Resource
 
                 Tables\Filters\Filter::make('today')
                     ->label('Placed today')
-                    ->query(fn (Builder $q) => $q->whereDate('created_at', today())),
+                    ->query(fn (Builder $query) => $query->whereDate('created_at', today())),
             ])
             ->actionsPosition(\Filament\Tables\Enums\ActionsPosition::BeforeColumns)
             ->actions([

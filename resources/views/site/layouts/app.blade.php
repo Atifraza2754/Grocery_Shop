@@ -47,6 +47,15 @@
         }
         .brand i { margin-right: 6px; }
 
+        /* Allow brand to shrink on small screens and truncate to keep header on one line */
+        .site-header .brand {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: inline-block;
+        }
+
         .btn-cart {
             background: var(--gs-primary);
             color: #fff;
@@ -92,8 +101,8 @@
         /* ========= FOOTER ========= */
         .site-footer {
             background: #fff; border-top: 1px solid var(--gs-border);
-            padding: 2rem 0; margin-top: 3rem; color: var(--gs-muted);
-            font-size: 0.9rem;
+            padding: 0.5rem 0; margin-top: 2rem; color: var(--gs-muted);
+            font-size: 1rem;
         }
 
         /* ========= TOAST ========= */
@@ -126,7 +135,11 @@
         @media (max-width: 575.98px) {
             .brand { font-size: 1.15rem; }
             .btn-cart { padding: 7px 14px; font-size: 0.9rem; }
+            .trackorder {
+               margin-right: -0.5rem!important;
+            }
         }
+        
     </style>
 
     @stack('styles')
@@ -136,13 +149,13 @@
 {{-- ======================== HEADER ======================== --}}
 <header class="site-header">
     <div class="container py-3">
-        <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
-            <a href="{{ route('site.home') }}" class="brand">
+        <div class="d-flex align-items-center justify-content-between gap-3 flex-nowrap">
+                <a href="{{ route('site.home') }}" class="brand flex-grow-1 me-2 text-truncate" style="min-width:0;">
                 <i class="fa-solid fa-leaf"></i>{{ config('app.name', 'Grocery Shop') }}
             </a>
 
-            <div class="d-flex align-items-center gap-2">
-                <a href="{{ route('site.track') }}" class="btn btn-light d-none d-sm-inline-flex align-items-center"
+                <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                <a href="{{ route('site.track') }}" class="btn btn-light d-inline-flex align-items-center me-2 trackorder"
                    style="border-radius: 999px; font-size: 0.9rem;">
                     <i class="fa-solid fa-truck me-1"></i> Track order
                 </a>
@@ -167,16 +180,14 @@
 
 {{-- ======================== FOOTER ======================== --}}
 <footer class="site-footer">
-    <div class="container d-flex flex-wrap gap-2 align-items-center justify-content-between">
+    <div class="container d-flex flex-wrap gap-2 align-items-center justify-content-center">
         <div>
             <strong style="color: var(--gs-primary);">
                 <i class="fa-solid fa-leaf"></i> {{ config('app.name') }}
             </strong>
-            <span class="ms-2">&copy; {{ date('Y') }}</span>
+            <span class="ms-2">&copy; {{ date('Y') }} rights are reserved.</span>
         </div>
-        <div class="text-muted small">
-            Fresh groceries, delivered to your door.
-        </div>
+
     </div>
 </footer>
 

@@ -201,11 +201,11 @@ class CouponResource extends Resource
 
                 Tables\Filters\Filter::make('expired')
                     ->label('Expired')
-                    ->query(fn (Builder $q) => $q->whereNotNull('expires_at')->where('expires_at', '<', now())),
+                    ->query(fn (Builder $query) => $query->whereNotNull('expires_at')->where('expires_at', '<', now())),
 
                 Tables\Filters\Filter::make('available')
                     ->label('Currently available')
-                    ->query(fn (Builder $q) => $q->available()),
+                    ->query(fn (Builder $query) => $query->available()),
 
                 Tables\Filters\TrashedFilter::make(),
             ])

@@ -64,11 +64,10 @@ class ListOrders extends ListRecords
     }
 
     /**
-     * Tabs by status.
-     *
-     * Filament's container resolves the closure parameters by type-hint, so the
-     * `Builder $q` hint is required (without it Filament throws "[$q] was unresolvable").
-     * Lazy badge() closures avoid running 6 count queries on every Livewire update.
+     * IMPORTANT: closure parameter MUST be named `$query` — that's what Filament
+     * injects via `['query' => $query]`. If you name it `$q`, Filament's container
+     * falls back to creating a fresh model-less Builder, which crashes downstream
+     * with "newQueryWithoutRelationships() on null".
      */
     public function getTabs(): array
     {
@@ -78,32 +77,32 @@ class ListOrders extends ListRecords
             'pending' => Tab::make('Pending')
                 ->badge(fn () => Order::where('status', Order::STATUS_PENDING)->count())
                 ->badgeColor('warning')
-                ->modifyQueryUsing(fn (Builder $q) => $q->where('status', Order::STATUS_PENDING)),
+                ->modifyQueryUsing(fn (Builder $query) => $query->where('status', Order::STATUS_PENDING)),
 
             'confirmed' => Tab::make('Confirmed')
                 ->badge(fn () => Order::where('status', Order::STATUS_CONFIRMED)->count())
                 ->badgeColor('info')
-                ->modifyQueryUsing(fn (Builder $q) => $q->where('status', Order::STATUS_CONFIRMED)),
+                ->modifyQueryUsing(fn (Builder $query) => $query->where('status', Order::STATUS_CONFIRMED)),
 
             'preparing' => Tab::make('Preparing')
                 ->badge(fn () => Order::where('status', Order::STATUS_PREPARING)->count())
                 ->badgeColor('warning')
-                ->modifyQueryUsing(fn (Builder $q) => $q->where('status', Order::STATUS_PREPARING)),
+                ->modifyQueryUsing(fn (Builder $query) => $query->where('status', Order::STATUS_PREPARING)),
 
             'out_for_delivery' => Tab::make('Out for delivery')
                 ->badge(fn () => Order::where('status', Order::STATUS_OUT_FOR_DELIVERY)->count())
                 ->badgeColor('primary')
-                ->modifyQueryUsing(fn (Builder $q) => $q->where('status', Order::STATUS_OUT_FOR_DELIVERY)),
+                ->modifyQueryUsing(fn (Builder $query) => $query->where('status', Order::STATUS_OUT_FOR_DELIVERY)),
 
             'delivered' => Tab::make('Delivered')
                 ->badge(fn () => Order::where('status', Order::STATUS_DELIVERED)->count())
                 ->badgeColor('success')
-                ->modifyQueryUsing(fn (Builder $q) => $q->where('status', Order::STATUS_DELIVERED)),
+                ->modifyQueryUsing(fn (Builder $query) => $query->where('status', Order::STATUS_DELIVERED)),
 
             'cancelled' => Tab::make('Cancelled')
                 ->badge(fn () => Order::where('status', Order::STATUS_CANCELLED)->count())
                 ->badgeColor('danger')
-                ->modifyQueryUsing(fn (Builder $q) => $q->where('status', Order::STATUS_CANCELLED)),
+                ->modifyQueryUsing(fn (Builder $query) => $query->where('status', Order::STATUS_CANCELLED)),
         ];
     }
 }

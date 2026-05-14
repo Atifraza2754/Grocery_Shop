@@ -12,27 +12,33 @@ class ListCommissions extends ListRecords
 {
     protected static string $resource = CommissionResource::class;
 
+    /**
+     * IMPORTANT: closure param MUST be named `$query` so Filament's evaluate()
+     * matches it by name against ['query' => $query]. With `$q`, the container
+     * falls back to making a fresh model-less Builder → BadMethodCallException
+     * for scope methods like ::owing().
+     */
     public function getTabs(): array
     {
         return [
             'all' => Tab::make('All'),
 
             'owing' => Tab::make('Owing')
-                ->badge(Commission::owing()->count())
+                ->badge(fn () => Commission::owing()->count())
                 ->badgeColor('warning')
-                ->modifyQueryUsing(fn (Builder $q) => $q->owing()),
+                ->modifyQueryUsing(fn (Builder $query) => $query->owing()),
 
             'pending' => Tab::make('Pending')
-                ->modifyQueryUsing(fn (Builder $q) => $q->where('status', Commission::STATUS_PENDING)),
+                ->modifyQueryUsing(fn (Builder $query) => $query->where('status', Commission::STATUS_PENDING)),
 
             'partial' => Tab::make('Partial')
-                ->modifyQueryUsing(fn (Builder $q) => $q->where('status', Commission::STATUS_PARTIAL)),
+                ->modifyQueryUsing(fn (Builder $query) => $query->where('status', Commission::STATUS_PARTIAL)),
 
             'paid' => Tab::make('Paid')
-                ->modifyQueryUsing(fn (Builder $q) => $q->where('status', Commission::STATUS_PAID)),
+                ->modifyQueryUsing(fn (Builder $query) => $query->where('status', Commission::STATUS_PAID)),
 
             'cancelled' => Tab::make('Cancelled')
-                ->modifyQueryUsing(fn (Builder $q) => $q->where('status', Commission::STATUS_CANCELLED)),
+                ->modifyQueryUsing(fn (Builder $query) => $query->where('status', Commission::STATUS_CANCELLED)),
         ];
     }
 }

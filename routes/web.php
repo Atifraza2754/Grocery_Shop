@@ -28,6 +28,8 @@ Route::post('/cart/grocery/remove',  [CartController::class, 'removeGrocery'])->
 
 Route::get('/checkout',          [CheckoutController::class, 'show'])->name('site.checkout');
 Route::post('/checkout',         [CheckoutController::class, 'place'])->name('site.checkout.place');
+// AJAX: lookup customer by phone for checkout autofill
+Route::get('/ajax/customer',     [CheckoutController::class, 'lookup'])->name('site.customer.lookup');
 
 Route::get('/order/{orderNo}',   [OrderController::class, 'show'])->name('site.order.show');
 Route::get('/track',             [OrderController::class, 'trackForm'])->name('site.track');

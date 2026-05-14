@@ -214,7 +214,7 @@ class CustomerResource extends Resource
 
                 Tables\Filters\Filter::make('vip')
                     ->label('VIP (Rs 10,000+)')
-                    ->query(fn (Builder $q) => $q->where('total_spend', '>=', 10000)),
+                    ->query(fn (Builder $query) => $query->where('total_spend', '>=', 10000)),
 
                 Tables\Filters\TernaryFilter::make('is_active'),
                 Tables\Filters\TrashedFilter::make(),

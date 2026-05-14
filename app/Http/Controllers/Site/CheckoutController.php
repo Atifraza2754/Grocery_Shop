@@ -37,6 +37,48 @@ class CheckoutController extends Controller
         return view('site.checkout', compact('areas', 'items', 'groceryItems', 'totals', 'prefill'));
     }
 
+    /**
+     * AJAX: Lookup a customer by phone and return basic details for autofill.
+     */
+    public function lookup(Request $request)
+    {
+        $phoneRaw = (string) $request->query('phone', '');
+        $phoneNormalized = preg_replace('/\D+/', '', $phoneRaw);
+
+        if (! $phoneNormalized) {
+            return response()->json(null, 404);
+        }
+
+        // Normalize phone column by stripping common punctuation for comparison
+        $normDb = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone, ' ', ''), '+', ''), '-', ''), '(', ''), ')', '')";
+
+        $customer = Customer::whereRaw("{$normDb} = ?", [$phoneNormalized])->first();
+
+        // Fallback: try suffix match of last 9 digits (handles country code differences)
+        if (! $customer) {
+            $last = substr($phoneNormalized, -9);
+            if ($last) {
+                $customer = Customer::whereRaw("{$normDb} LIKE ?", ['%'.$last])->first();
+            }
+        }
+
+        if (! $customer) {
+            return response()->json(null, 404);
+        }
+
+        return response()->json([
+            'id' => $customer->id,
+            'name' => $customer->name,
+            'phone' => $customer->phone,
+            'area_id' => $customer->area_id,
+            'address' => $customer->address,
+            'customer_note' => $customer->notes,
+            'notes' => $customer->notes,
+            'lat' => $customer->lat ? (float) $customer->lat : null,
+            'lng' => $customer->lng ? (float) $customer->lng : null,
+        ]);
+    }
+
     public function place(Request $request)
     {
         if ($this->cart->isEmpty()) {

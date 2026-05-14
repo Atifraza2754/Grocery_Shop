@@ -293,7 +293,7 @@ class ProductResource extends Resource
 
                 Tables\Filters\Filter::make('low_stock')
                     ->label('Low / out of stock')
-                    ->query(fn (Builder $q) => $q->whereColumn('stock_qty', '<=', 'low_stock_threshold')),
+                    ->query(fn (Builder $query) => $query->whereColumn('stock_qty', '<=', 'low_stock_threshold')),
 
                 Tables\Filters\TrashedFilter::make(),
             ])

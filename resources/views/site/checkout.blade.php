@@ -77,18 +77,19 @@
                     </h5>
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label">Full name *</label>
-                            <input type="text" name="name" class="form-control"
-                                   value="{{ old('name', $prefill['name'] ?? '') }}" required maxlength="120">
-                            @error('name')<div class="small text-danger mt-1">{{ $message }}</div>@enderror
-                        </div>
-                        <div class="col-md-6">
                             <label class="form-label">Phone *</label>
                             <input type="tel" name="phone" class="form-control"
                                    value="{{ old('phone', $prefill['phone'] ?? '') }}"
                                    placeholder="03001234567" required maxlength="20">
                             @error('phone')<div class="small text-danger mt-1">{{ $message }}</div>@enderror
                         </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Full name *</label>
+                            <input type="text" name="name" class="form-control"
+                                   value="{{ old('name', $prefill['name'] ?? '') }}" required maxlength="120">
+                            @error('name')<div class="small text-danger mt-1">{{ $message }}</div>@enderror
+                        </div>
+
                     </div>
                 </div>
 
@@ -151,7 +152,7 @@
                             'cash'     => ['Jazz Cash', 'fa-money-bill-wave'],
                             // 'transfer' => ['Bank Transfer', 'fa-building-columns'],
                         ] as $val => $cfg)
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <label class="pay-option">
                                     <input type="radio" name="payment_method" value="{{ $val }}"
                                            @checked(old('payment_method', 'cod') === $val)>
@@ -347,6 +348,57 @@
             txt.textContent = 'Pick on map';
         }
     });
+
+    // Customer lookup by phone (autofill address/area/notes/lat-lng)
+    (function () {
+        const phoneInput = document.querySelector('input[name="phone"]');
+        const nameInput  = document.querySelector('input[name="name"]');
+        const addressEl  = document.querySelector('textarea[name="address"]');
+        const noteEl     = document.querySelector('textarea[name="customer_note"]');
+        const lookupUrl  = "{{ route('site.customer.lookup') }}";
+        let lookupTimer  = null;
+
+        if (!phoneInput) return;
+
+        phoneInput.addEventListener('input', () => {
+            clearTimeout(lookupTimer);
+            lookupTimer = setTimeout(async () => {
+                const v = phoneInput.value.trim();
+                if (v.length < 6) return;
+                try {
+                    const res = await fetch(lookupUrl + '?phone=' + encodeURIComponent(v), {
+                        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                        credentials: 'same-origin',
+                    });
+                    if (!res.ok) return;
+                    const data = await res.json();
+                    if (!data) return;
+
+                    if (data.name && nameInput) nameInput.value = data.name;
+                    if (data.area_id && areaSelect) {
+                        const opt = Array.from(areaSelect.options).find(o => o.value == data.area_id);
+                        if (opt) { areaSelect.value = data.area_id; recalc(); }
+                    }
+                    if (data.address && addressEl) addressEl.value = data.address;
+                    if ((data.customer_note || data.notes) && noteEl) noteEl.value = data.customer_note ?? data.notes ?? '';
+                    if (data.lat && data.lng) {
+                        latInput.value = (+data.lat).toFixed(7);
+                        lngInput.value = (+data.lng).toFixed(7);
+                        if (mapInstance) {
+                            if (marker) marker.remove();
+                            marker = L.marker([+data.lat, +data.lng]).addTo(mapInstance);
+                            mapInstance.setView([+data.lat, +data.lng], 15);
+                            document.getElementById('pickerMap').classList.remove('hidden');
+                            document.getElementById('mapBtnText').textContent = 'Hide map';
+                        }
+                    }
+                    window.GS.toast('Customer data loaded', 'success');
+                } catch (e) {
+                    console.error('Customer lookup error', e);
+                }
+            }, 600);
+        });
+    })();
 
     /* Disable submit on click */
     document.getElementById('checkoutForm').addEventListener('submit', () => {
