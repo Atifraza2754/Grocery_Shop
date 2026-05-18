@@ -90,13 +90,20 @@
         .desktop-actions { display: none !important; }
         .sticky-actions { display: flex !important; position: fixed; left: 0; right: 0; bottom: 12px; z-index: 1200; justify-content: center; }
         .sticky-actions .bar { width: calc(100% - 32px); max-width: 920px; display:flex; gap: 8px; }
-        .sticky-actions .bar a { flex: 1; text-align: center; padding: 8px 10px; }
+        .sticky-actions .bar a { flex: 1; text-align: center; padding: 9px 4px; }
 
         /* reduce sizes for mobile to match screenshot 1 */
-        .success-icon { width: 54px; height: 54px; font-size: 1.35rem; margin-bottom: .6rem; }
-        .success-banner h2 { font-size: 1.05rem; line-height: 1.2; }
-        .success-banner p, .success-banner .text-muted { font-size: .86rem; }
+        .success-icon { width: 54px; height: 54px; font-size: 1.35rem; margin-bottom: .6rem; margin-top: -17px}
+        .success-banner h2 { font-size: 17px; line-height: 1.2; }
+        .success-banner p, .success-banner .text-muted { font-size: 18px; }
+         .success-banner{ margin-bottom: 0.5rem; }
+        .success-page{ padding: 0.5rem; margin-top: -30px; }
         .btn-whatsapp { padding: 8px 12px; font-size: .95rem; border-radius: 22px; }
+
+        .timeline{
+            margin:0rem 0;
+            padding: 0rem 0;
+        }
     }
 </style>
 @endpush
@@ -114,9 +121,10 @@
 @endphp
 
 @section('content')
-<div class="container py-4" style="max-width: 920px;">
+<div class="container py-4 success-page" style="max-width: 920px;">
 
     {{-- BANNER: Urdu style like the screenshot --}}
+    @if ($order->status === 'pending')
     <div class="success-banner">
         <div class="success-icon">
             @if ($cancelled)
@@ -133,7 +141,7 @@
                 Order number:
                 <strong style="user-select: all;">{{ $order->order_no }}</strong>
             </p>
-            <p class="text-muted small mb-0 mt-2">آڈر کی فوری کنفرمیشن اور پراسسنگ کے لیے WhatsApp پر "Send" کر دیں</p>
+            <p class="small mb-0 mt-2">آڈر کی فوری کنفرمیشن اور پراسسنگ کے لیے WhatsApp پر "Send" کر دیں</p>
             <div class="mt-3">
                 <a href="#" id="gsOpenWhatsApp" class="btn-whatsapp">
                     <i class="fa-brands fa-whatsapp"></i>
@@ -142,10 +150,11 @@
             </div>
         @endif
     </div>
+    @endif
 
     {{-- TIMELINE --}}
     @if (! $cancelled)
-        <div class="gs-card p-3 mb-3">
+        <div class="gs-card p-3 mb-3 timeline-card">
             <div class="timeline">
                 @foreach ($statuses as $key => [$label, $icon])
                     @php
@@ -248,7 +257,7 @@
                 <i class="fa-solid fa-house me-1"></i> Continue shopping
             </a>
             <a href="{{ route('site.track') }}?phone={{ urlencode($order->customer_phone) }}"
-               class="btn btn-outline-gs">
+               class="btn btn-outline-gs bg-white">
                 <i class="fa-solid fa-truck me-1"></i> Track this order
             </a>
         </div>

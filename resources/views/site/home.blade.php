@@ -150,11 +150,14 @@
     }
     .cart-qty-wrap .qty-btn {
         border: none; background: transparent; color: var(--gs-primary-dark);
-        width: 36px; height: 36px; border-radius: 8px; font-weight: 700;
+        width: 42px; height: 42px; border-radius: 8px; 
+        font-weight: 900; /* Isko extra bold kar diya hai */
+        font-size: 1.6rem; /* Plus aur minus ka size bara kar diya hai */
         display: inline-flex; align-items: center; justify-content: center;
+        line-height: 1; 
     }
     .cart-qty-wrap .qty-value {
-        min-width: 30px; text-align: center; font-weight: 700; color: var(--gs-primary-dark);
+        min-width: 30px; text-align: center; font-weight: 800; font-size: 1.1rem; color: var(--gs-primary-dark);
     }
 
     /* No-results */
@@ -204,6 +207,18 @@
             padding: 5px 0; /* Button ki height kam kar di */
             font-size: 0.85rem;
             border-radius: 6px;
+        }
+
+        /* Adjusted Qty Buttons for Mobile */
+        .cart-qty-wrap {
+            padding: 4px;
+        }
+        .cart-qty-wrap .qty-btn {
+            width: 36px; height: 36px;
+            font-size: 1.4rem; /* Mobile pe bhi bold aur wazeh dikhega */
+        }
+        .cart-qty-wrap .qty-value {
+            font-size: 1rem;
         }
 
     }

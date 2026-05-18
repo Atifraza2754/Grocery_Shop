@@ -72,12 +72,6 @@ class StockMovementResource extends Resource
         return $table
             ->defaultSort('id', 'desc')
             ->columns([
-                Tables\Columns\TextColumn::make('created_at')
-                    ->label('When')
-                    ->dateTime('M j, Y H:i')
-                    ->since()
-                    ->sortable(),
-
                 Tables\Columns\TextColumn::make('ambassador.name')
                     ->searchable()
                     ->sortable()
@@ -116,6 +110,11 @@ class StockMovementResource extends Resource
                     ->placeholder('—')
                     ->limit(40)
                     ->toggleable(),
+
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Created at')
+                    ->dateTime('n/j/Y g:i A')
+                    ->sortable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('ambassador_id')

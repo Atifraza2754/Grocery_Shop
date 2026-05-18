@@ -6,11 +6,17 @@ use App\Filament\Resources\AmbassadorResource\Pages;
 use App\Models\Ambassador;
 use App\Models\Area;
 use App\Models\CommissionPlan;
+use App\Models\StockItem;
+use App\Models\StockMovement;
+use App\Models\Commission;
+use Filament\Notifications\Notification;
+use Illuminate\Support\HtmlString;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Tables\Enums\ActionsPosition;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
@@ -149,52 +155,173 @@ class AmbassadorResource extends Resource
                 Tables\Filters\TernaryFilter::make('is_active'),
                 Tables\Filters\TrashedFilter::make(),
             ])
+            ->actionsPosition(ActionsPosition::BeforeColumns)
+            ->actionsColumnLabel('Action')
             ->actions([
-                Tables\Actions\Action::make('pay')
-                    ->label(fn (Ambassador $r) => 'Pay ' . number_format((float) $r->commission_pending, 0))
-                    ->icon('heroicon-o-banknotes')
+                Tables\Actions\DeleteAction::make(),
+                Tables\Actions\EditAction::make(),
+
+                /* ====================== ASSIGN STOCK (row action) ====================== */
+                Tables\Actions\Action::make('assign_stock')
+                    ->label('Assign stock')
+                    ->icon('heroicon-o-arrow-down-tray')
                     ->color('success')
-                    ->visible(fn (Ambassador $r) => (float) $r->commission_pending > 0)
-                    ->modalHeading(fn (Ambassador $r) => 'Pay ' . $r->name
-                        . ' — total remaining Rs ' . number_format((float) $r->commission_pending, 2))
-                    ->modalDescription('Partial payments are allowed; oldest commissions settle first.')
                     ->form([
-                        \Filament\Forms\Components\TextInput::make('pay_amount')
-                            ->label('Pay amount (Rs)')
+                        Forms\Components\Select::make('stock_item_id')
+                            ->label('Stock item')
+                            ->required()
+                            ->options(
+                                fn () => StockItem::query()
+                                    ->where('is_active', true)
+                                    ->orderBy('name')
+                                    ->get()
+                                    ->mapWithKeys(fn ($i) => [
+                                        $i->id => $i->name
+                                            . ' (Rs ' . number_format((float) $i->price, 0) . ' / ' . $i->unit . ')',
+                                    ])
+                                    ->all()
+                            )
+                            ->searchable(),
+
+                        Forms\Components\TextInput::make('qty')
                             ->numeric()->required()
-                            ->prefix('Rs')
-                            ->minValue(0.01)->step(0.01),
+                            ->minValue(0.001)
+                            ->step(0.001),
 
-                        \Filament\Forms\Components\Select::make('paid_method')
-                            ->options([
-                                'cash'     => 'Cash',
-                                'transfer' => 'Bank Transfer',
-                                'mobile'   => 'JazzCash / EasyPaisa',
-                                'other'    => 'Other',
-                            ])
-                            ->default('cash')->required(),
-
-                        \Filament\Forms\Components\Textarea::make('note')->rows(2),
+                        Forms\Components\Textarea::make('note')
+                            ->rows(2),
                     ])
                     ->action(function (Ambassador $record, array $data) {
-                        $applied = \App\Models\Commission::applyAmbassadorPayment(
-                            $record->id,
-                            (float) $data['pay_amount'],
-                            $data['paid_method'] ?? null,
-                            $data['note'] ?? null,
+                        $record->recordStockMovement(
+                            stockItemId: (int) $data['stock_item_id'],
+                            type: StockMovement::TYPE_ASSIGN,
+                            qty: (float) $data['qty'],
+                            note: $data['note'] ?? null,
                         );
 
-                        \Filament\Notifications\Notification::make()
-                            ->title('Paid Rs ' . number_format($applied, 2))
-                            ->body('Remaining: Rs ' . number_format(
-                                (float) $record->fresh()->commission_pending, 2
-                            ))
-                            ->success()
-                            ->send();
+                        Notification::make()->title('Stock assigned')->success()->send();
                     }),
 
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+                /* ====================== RELEASE STOCK (row action) ====================== */
+                Tables\Actions\Action::make('release_stock')
+                    ->label('Release stock')
+                    ->icon('heroicon-o-arrow-up-tray')
+                    ->color('warning')
+                    ->modalDescription('Releasing stock means it has been sold/distributed. The system creates a commission entry based on the chosen plan.')
+                    ->form([
+                        Forms\Components\Select::make('stock_item_id')
+                            ->label('Stock item')
+                            ->required()
+                            ->options(fn (Ambassador $record) =>
+                                $record->stockBalances()
+                                    ->with('stockItem')
+                                    ->where('qty', '>', 0)
+                                    ->get()
+                                    ->mapWithKeys(fn ($r) => [
+                                        $r->stock_item_id => $r->stockItem->name
+                                            . ' (have: ' . rtrim(rtrim((string) $r->qty, '0'), '.')
+                                            . ' ' . $r->stockItem->unit
+                                            . ' @ Rs ' . number_format((float) $r->stockItem->price, 0) . ')',
+                                    ])
+                                    ->all()
+                            )
+                            ->searchable()
+                            ->live()
+                            ->placeholder('— Select item with stock —'),
+
+                        Forms\Components\TextInput::make('qty')
+                            ->numeric()->required()
+                            ->minValue(0.001)
+                            ->step(0.001)
+                            ->live(onBlur: true),
+
+                        /* Plan select — defaulted to the ambassador's plan, can be overridden */
+                        Forms\Components\Select::make('plan_id')
+                            ->label('Commission plan')
+                            ->required()
+                            ->options(
+                                fn () => CommissionPlan::query()
+                                    ->where('is_active', true)
+                                    ->orderBy('name')
+                                    ->get()
+                                    ->mapWithKeys(fn ($p) => [
+                                        $p->id => $p->name . ' (' . rtrim(rtrim((string) $p->percent, '0'), '.') . '%)',
+                                    ])
+                                    ->all()
+                            )
+                            ->default(fn (Ambassador $record) => $record->plan_id)
+                            ->helperText('Defaults to the ambassador\'s plan. Override per release if needed.')
+                            ->live(),
+
+                        /* Live preview of commission that will be saved */
+                        Forms\Components\Placeholder::make('commission_preview')
+                            ->label('Commission preview')
+                            ->content(function (Forms\Get $get) {
+                                $itemId = $get('stock_item_id');
+                                $qty    = (float) ($get('qty') ?? 0);
+                                $planId = $get('plan_id');
+                                if (! $itemId || ! $qty || ! $planId) {
+                                    return new HtmlString('<span class="text-gray-400">Pick item, qty, and plan to see preview.</span>');
+                                }
+                                $item    = StockItem::find($itemId);
+                                $plan    = CommissionPlan::find($planId);
+                                if (! $item || ! $plan) {
+                                    return new HtmlString('—');
+                                }
+                                $base    = round($qty * (float) $item->price, 2);
+                                $percent = (float) $plan->percent;
+                                $amt     = round($base * $percent / 100, 2);
+                                return new HtmlString(
+                                    '<div class="space-y-1 text-sm">'
+                                    . '<div>Base: Rs ' . number_format($base, 2)
+                                    . '  (' . rtrim(rtrim((string) $qty, '0'), '.') . ' ' . e($item->unit)
+                                    . ' × Rs ' . number_format((float) $item->price, 2) . ')</div>'
+                                    . '<div>Plan: ' . e($plan->name) . ' (' . rtrim(rtrim((string) $percent, '0'), '.') . '%)</div>'
+                                    . '<div class="font-semibold text-emerald-700">'
+                                    . 'Commission: Rs ' . number_format($amt, 2) . '</div>'
+                                    . '</div>'
+                                );
+                            }),
+
+                        Forms\Components\Textarea::make('note')
+                            ->rows(2),
+                    ])
+                    ->action(function (Ambassador $record, array $data) {
+                        $movement = $record->recordStockMovement(
+                            stockItemId: (int) $data['stock_item_id'],
+                            type: StockMovement::TYPE_RELEASE,
+                            qty: (float) $data['qty'],
+                            note: $data['note'] ?? null,
+                        );
+
+                        // Generate the commission tied to this release
+                        $item    = StockItem::find($data['stock_item_id']);
+                        $plan    = CommissionPlan::find($data['plan_id']);
+                        if ($item && $plan) {
+                            $base    = round((float) $data['qty'] * (float) $item->price, 2);
+                            $percent = (float) $plan->percent;
+                            $amount  = round($base * $percent / 100, 2);
+
+                            Commission::create([
+                                'ambassador_id'     => $record->id,
+                                'order_id'          => null,
+                                'stock_movement_id' => $movement->id,
+                                'plan_id'           => $plan->id,
+                                'base_amount'       => $base,
+                                'percent'           => $percent,
+                                'amount'            => $amount,
+                                'paid_amount'       => 0,
+                                'status'            => Commission::STATUS_PENDING,
+                                'note'              => $data['note'] ?? null,
+                            ]);
+
+                            Notification::make()
+                                ->title('Stock released + commission Rs ' . number_format($amount, 2) . ' added')
+                                ->success()->send();
+                        } else {
+                            Notification::make()->title('Stock released')->success()->send();
+                        }
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

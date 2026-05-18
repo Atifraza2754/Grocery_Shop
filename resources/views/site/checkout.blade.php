@@ -149,13 +149,14 @@
                     <div class="row g-2">
                         @foreach ([
                             'cod'      => ['Cash on Delivery', 'fa-truck'],
-                            'cash'     => ['Jazz Cash', 'fa-money-bill-wave'],
+                            'cash'     => ['Jazz Cash - Coming Soon', 'fa-money-bill-wave'],
                             // 'transfer' => ['Bank Transfer', 'fa-building-columns'],
                         ] as $val => $cfg)
                             <div class="col-md-6">
-                                <label class="pay-option">
+                                <label class="pay-option" style="{{ $val === 'cash' ? 'opacity: 0.6; cursor: not-allowed;' : '' }}">
                                     <input type="radio" name="payment_method" value="{{ $val }}"
-                                           @checked(old('payment_method', 'cod') === $val)>
+                                           @checked(old('payment_method', 'cod') === $val)
+                                           @disabled($val === 'cash')>
                                     <i class="fa-solid {{ $cfg[1] }}" style="color: var(--gs-primary);"></i>
                                     <span class="fw-semibold">{{ $cfg[0] }}</span>
                                 </label>

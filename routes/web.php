@@ -5,7 +5,17 @@ use App\Http\Controllers\Site\CheckoutController;
 use App\Http\Controllers\Site\HomeController;
 use App\Http\Controllers\Site\OrderController;
 use App\Http\Controllers\Site\ProductController;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
+
+
+// Route::get('/create-storage-link', function () {
+
+//     Artisan::call('storage:link');
+
+//     return 'Storage link created successfully';
+
+// });
 
 /*
 |--------------------------------------------------------------------------

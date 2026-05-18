@@ -97,15 +97,29 @@ class ProductResource extends Resource
                                     ->step(0.01)
                                     ->helperText('Used to calculate margin.'),
 
+                                Forms\Components\TextInput::make('margin')
+                                    ->label('Margin')
+                                    ->numeric()
+                                    ->prefix('Rs')
+                                    ->default(0)
+                                    ->minValue(0)
+                                    ->step(0.01)
+                                    ->helperText('Free-form margin value (saved as entered).'),
+
                                 Forms\Components\Select::make('unit')
                                     ->options([
-                                        'piece' => 'Piece',
-                                        'pack'  => 'Pack',
-                                        'dozen' => 'Dozen',
-                                        'kg'    => 'Kilogram (kg)',
-                                        'g'     => 'Gram (g)',
-                                        'l'     => 'Litre (l)',
-                                        'ml'    => 'Millilitre (ml)',
+                                        'piece'      => 'Piece',
+                                        'pack'       => 'Pack',
+                                        'dozen'      => 'Dozen',
+                                        'kg'         => 'Kilogram (kg)',
+                                        'g'          => 'Gram (g)',
+                                        '100gm'      => '100 gm',
+                                        '250gm'      => '250 gm',
+                                        '500gm'      => '500 gm',
+                                        '750gm'      => '750 gm',
+                                        'l'          => 'Litre (l)',
+                                        'half_liter' => 'Half Liter',
+                                        'ml'         => 'Millilitre (ml)',
                                     ])
                                     ->default('piece')
                                     ->required(),
@@ -253,6 +267,12 @@ class ProductResource extends Resource
                     ->money('PKR')
                     ->sortable(),
 
+                Tables\Columns\TextColumn::make('margin')
+                    ->label('Margin')
+                    ->money('PKR')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 Tables\Columns\TextColumn::make('stock_qty')
                     ->label('Stock')
                     ->numeric()
@@ -262,7 +282,8 @@ class ProductResource extends Resource
                         $r->stock_qty <= 0                 => 'danger',
                         $r->stock_qty <= $r->low_stock_threshold => 'warning',
                         default                            => 'success',
-                    }),
+                    })
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('unit')
                     ->toggleable(isToggledHiddenByDefault: true),

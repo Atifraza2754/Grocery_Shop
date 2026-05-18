@@ -47,9 +47,13 @@
         .sticky-actions .bar { width: calc(100% - 32px); max-width: 720px; display:flex; gap: 8px; }
         .sticky-actions .bar a { flex: 1; text-align: center; padding: 8px 10px; }
 
-        .success-icon { width: 54px; height: 54px; font-size: 1.35rem; margin-bottom: .6rem; }
-        .success-banner h2 { font-size: 1.05rem; line-height: 1.2; }
-        .success-banner p, .success-banner .text-muted { font-size: .86rem; }
+
+            /* reduce sizes for mobile to match screenshot 1 */
+        .success-icon { width: 54px; height: 54px; font-size: 1.35rem; margin-bottom: .6rem; margin-top: -17px}
+        .success-banner h2 { font-size: 16px; line-height: 1.2; }
+        .success-banner p, .success-banner .text-muted { font-size: 17px; }
+         .success-banner{ margin-bottom: 0.5rem; }
+        .success-page{ padding: 0.5rem; margin-top: -30px; }
         .btn-whatsapp { padding: 8px 12px; font-size: .95rem; border-radius: 22px; }
     }
 </style>
@@ -82,7 +86,9 @@
     @isset($orders)
         @if ($orders->count())
             @php $first = $orders->first(); @endphp
-            {{-- Urdu banner for tracked order (matches order-success) --}}
+
+            @if ($first->status === 'pending')
+
             <div class="success-banner mb-3">
                 <div class="success-icon">
                     <i class="fa-solid fa-check"></i>
@@ -100,6 +106,7 @@
                     </a>
                 </div>
             </div>
+            @endif
 
             {{-- desktop actions removed — single Continue button will be shown after order list --}}
 

@@ -40,6 +40,7 @@ class Order extends Model
         'delivery_address',
         'lat',
         'lng',
+        'location_url',
         'subtotal',
         'discount',
         'delivery_charge',
@@ -311,9 +312,17 @@ class Order extends Model
         return $this->needsPricing() ? 'Needs pricing' : 'Priced';
     }
 
-    /** Google-Maps-friendly URL for the live location, or null. */
+    /**
+     * Google-Maps-friendly URL for the live location, or null.
+     * Priority:
+     *   1. location_url (admin-pasted link, takes precedence)
+     *   2. Built from lat/lng (customer-side map picker)
+     */
     public function mapsUrl(): ?string
     {
+        if (! empty($this->location_url)) {
+            return $this->location_url;
+        }
         if ($this->lat && $this->lng) {
             return "https://www.google.com/maps?q={$this->lat},{$this->lng}";
         }

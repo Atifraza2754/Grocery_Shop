@@ -74,21 +74,18 @@ class CommissionResource extends Resource
         return $table
             ->defaultSort('id', 'desc')
             ->columns([
-                Tables\Columns\TextColumn::make('id')
-                    ->label('#')
-                    ->sortable(),
-
+                
                 Tables\Columns\TextColumn::make('ambassador.name')
                     ->searchable()
                     ->sortable()
                     ->weight('semibold')
-                    ->description(fn (Commission $r) => $r->ambassador?->phone),
+                    ->description(fn(Commission $r) => $r->ambassador?->phone),
 
                 Tables\Columns\TextColumn::make('order.order_no')
                     ->label('Order')
                     ->badge()->color('gray')
                     ->searchable()
-                    ->url(fn (Commission $r) => $r->order
+                    ->url(fn(Commission $r) => $r->order
                         ? route('filament.admin.resources.orders.edit', ['record' => $r->order_id])
                         : null),
 
@@ -97,7 +94,7 @@ class CommissionResource extends Resource
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('percent')
-                    ->formatStateUsing(fn ($state) => rtrim(rtrim((string) $state, '0'), '.') . '%')
+                    ->formatStateUsing(fn($state) => rtrim(rtrim((string) $state, '0'), '.') . '%')
                     ->badge()->color('info')
                     ->toggleable(),
 
@@ -113,24 +110,24 @@ class CommissionResource extends Resource
 
                 Tables\Columns\TextColumn::make('remaining')
                     ->label('Remaining')
-                    ->state(fn (Commission $r) => (float) $r->remaining)
+                    ->state(fn(Commission $r) => (float) $r->remaining)
                     ->money('PKR')
                     ->weight('semibold')
-                    ->color(fn ($state) => $state > 0 ? 'warning' : 'gray'),
+                    ->color(fn($state) => $state > 0 ? 'warning' : 'gray'),
 
                 Tables\Columns\TextColumn::make('source')
                     ->label('Source')
-                    ->state(fn (Commission $r) => $r->stock_movement_id
+                    ->state(fn(Commission $r) => $r->stock_movement_id
                         ? 'Stock release'
                         : ($r->order_id ? 'Order' : '—'))
                     ->badge()
-                    ->color(fn ($state) => $state === 'Stock release' ? 'info' : ($state === 'Order' ? 'success' : 'gray'))
+                    ->color(fn($state) => $state === 'Stock release' ? 'info' : ($state === 'Order' ? 'success' : 'gray'))
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
-                    ->formatStateUsing(fn (Commission $r) => Commission::STATUSES[$r->status] ?? $r->status)
-                    ->color(fn (Commission $r) => $r->statusColor())
+                    ->formatStateUsing(fn(Commission $r) => Commission::STATUSES[$r->status] ?? $r->status)
+                    ->color(fn(Commission $r) => $r->statusColor())
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('paid_at')
@@ -144,7 +141,8 @@ class CommissionResource extends Resource
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('created_at')
-                    ->since()
+                    ->label('Created at')
+                    ->dateTime('n/j/Y g:i A')
                     ->sortable(),
             ])
             ->filters([
@@ -158,20 +156,21 @@ class CommissionResource extends Resource
 
                 Tables\Filters\Filter::make('this_month')
                     ->label('This month')
-                    ->query(fn (Builder $query) => $query->whereBetween('created_at', [
-                        now()->startOfMonth(), now()->endOfMonth(),
+                    ->query(fn(Builder $query) => $query->whereBetween('created_at', [
+                        now()->startOfMonth(),
+                        now()->endOfMonth(),
                     ])),
             ])
             ->actions([
                 Tables\Actions\Action::make('pay')
-                    ->label(fn (Commission $r) =>
-                        'Pay (Rs ' . number_format((float) $r->remaining, 0) . ')')
+                    ->label(fn(Commission $r) =>
+                    'Pay (Rs ' . number_format((float) $r->remaining, 0) . ')')
                     ->icon('heroicon-m-banknotes')
                     ->color('success')
-                    ->visible(fn (Commission $r) => (float) $r->remaining > 0
+                    ->visible(fn(Commission $r) => (float) $r->remaining > 0
                         && $r->status !== Commission::STATUS_CANCELLED)
-                    ->modalHeading(fn (Commission $r) =>
-                        'Pay ' . ($r->ambassador?->name ?? 'commission')
+                    ->modalHeading(fn(Commission $r) =>
+                    'Pay ' . ($r->ambassador?->name ?? 'commission')
                         . ' — remaining Rs ' . number_format((float) $r->remaining, 2))
                     ->modalDescription('Partial payment is allowed. Enter the amount you are paying now.')
                     ->form([
@@ -181,9 +180,7 @@ class CommissionResource extends Resource
                             ->required()
                             ->prefix('Rs')
                             ->minValue(0.01)
-                            ->step(0.01)
-                            ->default(fn (Commission $record) => (float) $record->remaining)
-                            ->helperText('Defaults to full remaining; lower it for a partial payment.'),
+                            ->step(0.01),
 
                         Forms\Components\Select::make('paid_method')
                             ->label('Method')
@@ -204,7 +201,9 @@ class CommissionResource extends Resource
                             $data['paid_method'] ?? null,
                             $data['note'] ?? null,
                         );
+
                         $remaining = (float) $record->fresh()->remaining;
+
                         Notification::make()
                             ->title('Paid Rs ' . number_format($applied, 2))
                             ->body($remaining > 0
@@ -215,8 +214,12 @@ class CommissionResource extends Resource
                     }),
 
                 Tables\Actions\EditAction::make(),
+
                 Tables\Actions\DeleteAction::make(),
-            ])
+
+            ], position: Tables\Enums\ActionsPosition::BeforeColumns)
+
+            ->actionsColumnLabel('Actions')
             ->bulkActions([
                 Tables\Actions\BulkAction::make('mark_paid_bulk')
                     ->label('Mark selected fully paid')

@@ -117,6 +117,15 @@ class OrderResource extends Resource
                         Forms\Components\Textarea::make('delivery_address')
                             ->rows(2)->columnSpanFull(),
 
+                        Forms\Components\TextInput::make('location_url')
+                            ->label('Location link (Google Maps)')
+                            ->url()
+                            ->maxLength(500)
+                            ->placeholder('Paste a Google Maps link e.g. https://maps.app.goo.gl/...')
+                            ->prefixIcon('heroicon-o-map-pin')
+                            ->helperText('Paste any Google Maps share link. Shown as "Open in Google Maps" on the order view.')
+                            ->columnSpanFull(),
+
                         Forms\Components\TextInput::make('lat')
                             ->numeric()->step(0.0000001)->placeholder('Optional'),
                         Forms\Components\TextInput::make('lng')
@@ -201,9 +210,11 @@ class OrderResource extends Resource
                                     })
                                     ->columnSpan(['default' => 12, 'md' => 4]),
 
-                                // hidden snapshots
+                                // hidden snapshots — default false so DB never gets NULL
                                 Forms\Components\Hidden::make('sku'),
-                                Forms\Components\Hidden::make('is_grocery_request'),
+                                Forms\Components\Hidden::make('is_grocery_request')
+                                    ->default(false)
+                                    ->dehydrateStateUsing(fn ($state) => (bool) $state),
                             ]),
                     ]),
 
@@ -484,11 +495,9 @@ class OrderResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('created_at')
-                    ->label('Placed')
-                    ->dateTime('M j, Y H:i')
-                    ->since()
-                    ->sortable()
-                    ->toggleable(),
+                    ->label('Placed at')
+                    ->dateTime('n/j/Y g:i A')
+                    ->sortable(),
             ])
             ->filters([
                 Tables\Filters\SelectFilter::make('status')
