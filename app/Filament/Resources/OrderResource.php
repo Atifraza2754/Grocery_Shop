@@ -436,7 +436,27 @@ class OrderResource extends Resource
                     ->label('Total bill')
                     ->money('PKR')
                     ->sortable()
-                    ->weight('semibold'),
+                    ->weight('semibold')
+                    // Red highlight ONLY while pending AND customer added grocery items.
+                    // Once admin confirms, the colour reverts to default.
+                    ->color(function (Order $record) {
+                        if ($record->status !== Order::STATUS_PENDING) {
+                            return null;
+                        }
+                        return $record->items()
+                            ->where('is_grocery_request', true)
+                            ->exists() ? 'danger' : null;
+                    })
+                    ->tooltip(function (Order $record) {
+                        if ($record->status !== Order::STATUS_PENDING) {
+                            return null;
+                        }
+                        return $record->items()
+                            ->where('is_grocery_request', true)
+                            ->exists()
+                            ? 'Has customer-added grocery items — review pricing.'
+                            : null;
+                    }),
 
                 Tables\Columns\TextColumn::make('customer_phone')
                     ->label('Contact')

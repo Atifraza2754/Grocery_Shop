@@ -295,13 +295,21 @@
                 <div class="col-6 col-md-2">
                     <label class="form-label small fw-semibold mb-1">Unit</label>
                     <select id="gUnit" class="form-select" style="border-radius:10px;">
-                        <option value="piece">piece</option>
-                        <option value="pack">pack</option>
-                        <option value="kg">kg</option>
-                        <option value="g">g</option>
-                        <option value="l">litre</option>
-                        <option value="ml">ml</option>
-                        <option value="dozen">dozen</option>
+                        <option value="">Select an option</option>
+                        
+                        <option value="piece">Piece</option>
+                        <option value="pack">Pack</option>
+                        <option value="dozen">Dozen</option>
+                        <option value="kg">Kilogram (kg)</option>
+                        <option value="gram">Gram (g)</option>
+                        <option value="100gm">100 gm</option>
+                        <option value="250gm">250 gm</option>
+                        <option value="500gm">500 gm</option>
+                        <option value="750gm">750 gm</option>
+                        <option value="litre">Litre (l)</option>
+                        <option value="half_liter">Half Liter</option>
+                        <option value="ml">Millilitre (ml)</option>
+
                     </select>
                 </div>
                 <div class="col-12 col-md-2">

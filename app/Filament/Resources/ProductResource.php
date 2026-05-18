@@ -119,6 +119,10 @@ class ProductResource extends Resource
                                         '750gm'      => '750 gm',
                                         'l'          => 'Litre (l)',
                                         'half_liter' => 'Half Liter',
+                                        'half_kg'    => 'Half kg',
+                                        'pao'        => 'Pao',
+                                        'bunch'      => 'Bunch',
+                                        '2kg'        => '2kg',
                                         'ml'         => 'Millilitre (ml)',
                                     ])
                                     ->default('piece')
@@ -168,12 +172,16 @@ class ProductResource extends Resource
 
                                         Forms\Components\Select::make('unit')
                                             ->options([
-                                                'piece' => 'piece',
-                                                'pack'  => 'pack',
-                                                'g'     => 'g',
-                                                'kg'    => 'kg',
-                                                'ml'    => 'ml',
-                                                'l'     => 'l',
+                                                'piece'  => 'piece',
+                                                'pack'   => 'pack',
+                                                'g'      => 'g',
+                                                'kg'     => 'kg',
+                                                'half_kg'=> 'half_kg',
+                                                '2kg'    => '2kg',
+                                                'pao'    => 'pao',
+                                                'bunch'  => 'bunch',
+                                                'ml'     => 'ml',
+                                                'l'      => 'l',
                                             ])
                                             ->default('g')
                                             ->required(),

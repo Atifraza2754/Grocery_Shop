@@ -94,8 +94,8 @@
 
         /* reduce sizes for mobile to match screenshot 1 */
         .success-icon { width: 54px; height: 54px; font-size: 1.35rem; margin-bottom: .6rem; margin-top: -17px}
-        .success-banner h2 { font-size: 17px; line-height: 1.2; }
-        .success-banner p, .success-banner .text-muted { font-size: 18px; }
+        .success-banner h2 { font-size: 1.05rem; line-height: 1.2; }
+        .success-banner p, .success-banner .text-muted { font-size: 1rem; font-weight: 600; }
          .success-banner{ margin-bottom: 0.5rem; }
         .success-page{ padding: 0.5rem; margin-top: -30px; }
         .btn-whatsapp { padding: 8px 12px; font-size: .95rem; border-radius: 22px; }
@@ -136,7 +136,7 @@
         @if ($cancelled)
             <h2 style="font-weight: 800; color: var(--gs-primary-dark); margin: 0;">Order cancelled</h2>
         @else
-            <h2 style="font-weight: 800; color: var(--gs-primary-dark); margin: 0;">🎉 شکریہ! آپ کا آرڈر ریکارڈ ہو چکا ہے۔</h2>
+            <h2 style="font-weight: 700; color: var(--gs-primary-dark); margin: 0;">🎉 شکریہ! آپ کا آرڈر ریکارڈ ہو چکا ہے۔</h2>
             <p class="mb-0 mt-2" style="font-family: monospace; color: var(--gs-primary-dark);">
                 Order number:
                 <strong style="user-select: all;">{{ $order->order_no }}</strong>
