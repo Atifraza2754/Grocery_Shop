@@ -51,7 +51,7 @@
             /* reduce sizes for mobile to match screenshot 1 */
         .success-icon { width: 54px; height: 54px; font-size: 1.35rem; margin-bottom: .6rem; margin-top: -17px}
         .success-banner h2 { font-size: 1.05rem; line-height: 1.2; }
-        .success-banner p, .success-banner .text-muted { font-size: 1rem; font-weight: 600; }
+        .success-banner p, .text-muted { font-size: 1rem; font-weight: 600; }
          .success-banner{ margin-bottom: 0.5rem; }
         .success-page{ padding: 0.5rem; margin-top: -30px; }
         .btn-whatsapp { padding: 8px 12px; font-size: .95rem; border-radius: 22px; }
@@ -98,11 +98,21 @@
                     Order number:
                     <strong style="user-select: all;">{{ $first->order_no }}</strong>
                 </p>
-                <p class="text-muted small mb-0 mt-2">آڈر کی فوری کنفرمیشن اور پراسسنگ کے لیے WhatsApp پر "Send" کر دیں</p>
+               <p class="text-muted small mb-0 mt-2" style="direction: rtl;">
+                    آرڈر کی فوری تصدیق اور تیز پراسنگ کے لیے براہِ کرم
+                    <span dir="ltr" style="unicode-bidi: isolate;">
+                         WhatsApp 
+                    </span>
+                    پر
+                    <span dir="ltr" style="unicode-bidi: isolate;">
+                         Send
+                    </span>
+                    کریں
+                </p>
                 <div class="mt-3">
                     <a href="#" id="gsOpenWhatsApp" class="btn-whatsapp">
                         <i class="fa-brands fa-whatsapp"></i>
-                        <span>WhatsApp Click to Chat</span>
+                        <span> Click WhatsApp to Send</span>
                     </a>
                 </div>
             </div>

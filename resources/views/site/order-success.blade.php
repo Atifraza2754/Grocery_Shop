@@ -141,13 +141,23 @@
                 Order number:
                 <strong style="user-select: all;">{{ $order->order_no }}</strong>
             </p>
-            <p class="small mb-0 mt-2">آڈر کی فوری کنفرمیشن اور پراسسنگ کے لیے WhatsApp پر "Send" کر دیں</p>
-            <div class="mt-3">
-                <a href="#" id="gsOpenWhatsApp" class="btn-whatsapp">
-                    <i class="fa-brands fa-whatsapp"></i>
-                    <span>WhatsApp Click to Chat</span>
-                </a>
-            </div>
+            <p class="text-muted small mb-0 mt-2" style="direction: rtl;">
+                    آرڈر کی فوری تصدیق اور تیز پراسنگ کے لیے براہِ کرم
+                    <span dir="ltr" style="unicode-bidi: isolate;">
+                         WhatsApp 
+                    </span>
+                    پر
+                    <span dir="ltr" style="unicode-bidi: isolate;">
+                         Send
+                    </span>
+                    کریں
+                </p>
+                <div class="mt-3">
+                    <a href="#" id="gsOpenWhatsApp" class="btn-whatsapp">
+                        <i class="fa-brands fa-whatsapp"></i>
+                        <span> Click WhatsApp to Send</span>
+                    </a>
+                </div>
         @endif
     </div>
     @endif

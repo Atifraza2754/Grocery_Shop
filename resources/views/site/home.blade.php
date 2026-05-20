@@ -101,7 +101,7 @@
 .product-img {
     width: 100% !important;
     height: 100% !important;
-    object-fit: cover; /* Taake image pure container ko cover kare jese pehli image mein hai */
+    object-fit: contain; /* Taake image pure container ko cover kare jese pehli image mein hai */
     padding: 0 !important; /* Inner padding ko khatam karein */
 }
     .product-card:hover .product-img { transform: scale(1.05); }
