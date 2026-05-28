@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\ProductResource\Pages;
 
 use App\Filament\Resources\ProductResource;
+use App\Models\Category;
 use App\Models\Product;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
@@ -15,6 +16,26 @@ class ListProducts extends ListRecords
     {
         return [
             Actions\CreateAction::make(),
+
+            Actions\Action::make('copy_products')
+                ->label('Copy products')
+                ->icon('heroicon-o-clipboard-document-list')
+                ->color('success')
+                ->modalHeading('Product list — grouped by category')
+                ->modalSubmitAction(false)
+                ->modalCancelActionLabel('Close')
+                ->modalWidth('lg')
+                ->modalContent(fn () => view('filament.products.copy-list-modal', [
+                    'categories' => Category::query()
+                        ->where('is_active', true)
+                        ->with(['products' => fn ($q) => $q
+                            ->where('is_active', true)
+                            ->orderBy('sort_order')
+                            ->orderBy('name')])
+                        ->orderBy('sort_order')
+                        ->orderBy('name')
+                        ->get(),
+                ])),
 
             Actions\Action::make('export_csv')
                 ->label('Export CSV')

@@ -32,6 +32,7 @@ class Order extends Model
 
     protected $fillable = [
         'order_no',
+        'manual_order_id',
         'customer_id',
         'customer_name',
         'customer_phone',
@@ -351,6 +352,9 @@ class Order extends Model
     {
         $lines = [];
         $lines[] = "🛒 *Order #{$this->order_no}*";
+        if (! empty($this->manual_order_id)) {
+            $lines[] = "Manual ID: {$this->manual_order_id}";
+        }
         $lines[] = "Status: " . $this->statusLabel();
         $lines[] = "";
         $lines[] = "👤 *Customer*";

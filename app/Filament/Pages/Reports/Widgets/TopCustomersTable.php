@@ -24,7 +24,8 @@ class TopCustomersTable extends BaseWidget
                     ->orderByDesc('total_spend')
                     ->limit(10)
             )
-            ->paginated(false)
+            ->paginated([10, 25, 50, 100])
+            ->defaultPaginationPageOption(10)
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->weight('semibold')

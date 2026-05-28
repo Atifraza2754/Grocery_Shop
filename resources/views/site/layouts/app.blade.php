@@ -131,6 +131,34 @@
         .gs-toast.error i { color: #dc3545; }
         .gs-toast.warn  i { color: #ffc107; }
 
+        /* ========= WHATSAPP FLOAT ========= */
+        .wa-float {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: #25d366;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.7rem;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.22);
+            z-index: 1500;
+            text-decoration: none;
+            transition: transform .2s ease, box-shadow .2s ease;
+        }
+        .wa-float:hover {
+            color: #fff;
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 10px 24px rgba(0,0,0,0.28);
+        }
+        @media (max-width: 575.98px) {
+            .wa-float { width: 50px; height: 50px; font-size: 1.5rem; right: 16px; bottom: 16px; }
+        }
+
         /* small responsive tweaks */
         @media (max-width: 575.98px) {
             .brand { font-size: 1.15rem; }
@@ -190,6 +218,15 @@
 
     </div>
 </footer>
+
+{{-- ===================== WHATSAPP FLOAT ===================== --}}
+{{-- Hidden on order-success & track pages via @section('hide_whatsapp') --}}
+@unless(View::hasSection('hide_whatsapp'))
+    <a href="https://wa.me/923317774757" target="_blank" rel="noopener"
+       class="wa-float" aria-label="Chat on WhatsApp" title="Chat on WhatsApp">
+        <i class="fa-brands fa-whatsapp"></i>
+    </a>
+@endunless
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 

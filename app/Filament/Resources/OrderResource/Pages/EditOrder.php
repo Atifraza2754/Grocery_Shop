@@ -77,10 +77,12 @@ class EditOrder extends EditRecord
                 ],
             ),
 
-            // Cancel — uses the SAME helper as the forward-only buttons,
-            // so the modal-form code path is identical (and proven to work).
+            // IMPORTANT: name must NOT be 'cancel' — Filament modals have a
+            // built-in internal action named 'cancel' (the close button), and
+            // the collision prevented this modal from ever opening. Renamed to
+            // 'cancel_order' to fix it.
             $this->statusAction(
-                'cancel', 'Cancel order',
+                'cancel_order', 'Cancel order',
                 Order::STATUS_CANCELLED, 'heroicon-o-x-circle', 'danger',
                 [
                     Order::STATUS_PENDING,

@@ -7,6 +7,22 @@
 
     {{-- Top summary --}}
     <div class="grid grid-cols-2 gap-3">
+        @if ($order->manual_order_id)
+            <div class="col-span-2">
+                <div class="text-xs text-gray-500 uppercase">Manual ID</div>
+                <div class="font-mono font-semibold">
+                    {{ $order->manual_order_id }}
+                    <button type="button"
+                            class="ml-1 text-emerald-600 hover:text-emerald-800"
+                            @click="copy(@js($order->manual_order_id))">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 inline" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M7 3a2 2 0 00-2 2v10a2 2 0 002 2h6a2 2 0 002-2V5a2 2 0 00-2-2H7zm0 2h6v10H7V5z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        @endif
+
         <div>
             <div class="text-xs text-gray-500 uppercase">Customer</div>
             <div class="font-semibold">{{ $order->customer_name }}</div>

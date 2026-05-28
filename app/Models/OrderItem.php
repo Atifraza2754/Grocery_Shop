@@ -13,6 +13,7 @@ class OrderItem extends Model
     protected $fillable = [
         'order_id',
         'product_id',
+        'category_id',
         'is_grocery_request',
         'sku',
         'name',
@@ -47,6 +48,21 @@ class OrderItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    /**
+     * The category this line belongs to: a catalog item resolves it through
+     * its product; a custom (grocery-request) item uses the category assigned
+     * to it directly in the order form.
+     */
+    public function resolvedCategoryId(): ?int
+    {
+        return $this->product?->category_id ?? $this->category_id;
     }
 
     /**

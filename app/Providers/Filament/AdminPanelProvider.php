@@ -41,7 +41,7 @@ class AdminPanelProvider extends PanelProvider
             ->sidebarCollapsibleOnDesktop()
             ->sidebarWidth('17rem')
             ->collapsedSidebarWidth('4.5rem')
-            ->darkMode(true)
+            ->darkMode(true, isForced: true)
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
@@ -49,14 +49,15 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
             ->widgets([
-                // Welcome widget kept; FilamentInfoWidget intentionally removed.
-                Widgets\AccountWidget::class,
+                // Welcome (AccountWidget) removed per request; dashboard stat
+                // widgets are auto-discovered from Filament/Widgets.
             ])
             ->navigationGroups([
                 'Catalog',
                 'Sales',
                 'People',
                 'Ambassadors',
+                'Expenses',
                 'Operations',
                 'Reports',
                 'Settings',

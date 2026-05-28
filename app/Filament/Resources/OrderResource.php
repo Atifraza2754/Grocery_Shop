@@ -145,7 +145,9 @@ class OrderResource extends Resource
                             ->addActionLabel('+ Add product')
                             ->live()
                             ->schema([
-                                /* ===== ROW 1: Product + Name (5 + 7 = 12) ===== */
+                                /* ===== ROW 1: Product / Category + Name (5 + 7 = 12) ===== */
+
+                                // Catalog products — shown for normal items only.
                                 Forms\Components\Select::make('product_id')
                                     ->label('Product')
                                     ->options(
@@ -159,8 +161,8 @@ class OrderResource extends Resource
                                             ->all()
                                     )
                                     ->searchable()
-                                    ->placeholder(fn (Get $get) => $get('is_grocery_request') ? '— Custom item —' : 'Pick a product')
-                                    ->disabled(fn (Get $get) => (bool) $get('is_grocery_request'))
+                                    ->placeholder('Pick a product')
+                                    ->visible(fn (Get $get) => ! (bool) $get('is_grocery_request'))
                                     ->dehydrated()
                                     ->live()
                                     ->afterStateUpdated(function ($state, Set $set) {
@@ -172,6 +174,25 @@ class OrderResource extends Resource
                                         $set('unit',  $p->unit);
                                         $set('price', (float) $p->price);
                                     })
+                                    ->columnSpan(['default' => 12, 'md' => 5]),
+
+                                // Category — shown for custom (grocery-request) items
+                                // instead of the product picker. The item's name is
+                                // then listed under this category in PO Print.
+                                Forms\Components\Select::make('category_id')
+                                    ->label('Category')
+                                    ->options(
+                                        fn () => \App\Models\Category::query()
+                                            ->orderBy('sort_order')
+                                            ->orderBy('name')
+                                            ->pluck('name', 'id')
+                                            ->all()
+                                    )
+                                    ->searchable()
+                                    ->placeholder('Assign a category')
+                                    ->helperText('Custom item — appears under this category in PO Print.')
+                                    ->visible(fn (Get $get) => (bool) $get('is_grocery_request'))
+                                    ->dehydrated()
                                     ->columnSpan(['default' => 12, 'md' => 5]),
 
                                 Forms\Components\TextInput::make('name')
@@ -234,6 +255,17 @@ class OrderResource extends Resource
 
             /* ===== RIGHT COLUMN (1/3 width) ===== */
             Forms\Components\Group::make()->columnSpan(1)->schema([
+
+                /* --- Reference --- */
+                Forms\Components\Section::make('Reference')
+                    ->schema([
+                        Forms\Components\TextInput::make('manual_order_id')
+                            ->label('Manual order ID')
+                            ->maxLength(64)
+                            ->placeholder('Your offline / paper order ID')
+                            ->prefixIcon('heroicon-o-hashtag')
+                            ->helperText('System order # is auto-generated. Enter your own manual reference here.'),
+                    ]),
 
                 /* --- Delivery --- */
                 Forms\Components\Section::make('Delivery')
@@ -425,6 +457,15 @@ class OrderResource extends Resource
                     ->label('Order #')
                     ->badge()->color('gray')
                     ->searchable()->sortable()->weight('semibold'),
+
+                Tables\Columns\TextColumn::make('manual_order_id')
+                    ->label('Manual ID')
+                    ->placeholder('—')
+                    ->copyable()
+                    ->copyMessage('Manual ID copied!')
+                    ->searchable()
+                    ->sortable()
+                    ->weight('semibold'),
 
                 Tables\Columns\TextColumn::make('area.name')
                     ->label('Area')
