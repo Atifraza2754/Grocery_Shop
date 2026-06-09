@@ -354,6 +354,17 @@
         @endforelse
     </div>
 
+    {{-- ============ SEARCH RESULTS GRID (server-side, all products) ============ --}}
+    <div class="row g-3" id="searchResultsGrid" style="display:none;"></div>
+
+    {{-- ============ LOAD MORE BUTTON ============ --}}
+    <div class="text-center mt-4" id="loadMoreWrap" style="display:none;">
+        <button id="loadMoreBtn" type="button" class="btn-add"
+                style="max-width: 260px; display: inline-block;">
+            <i class="fa-solid fa-arrow-down me-1"></i> Load more
+        </button>
+    </div>
+
 </div>
 @endsection
 
@@ -368,6 +379,24 @@
     const activeBtn = document.querySelector('.category-btn.active');
     let currentCat = activeBtn ? activeBtn.dataset.cat : '';
     let currentQuery = '';
+
+    /* ===== Server-driven search + Load more state ===== */
+    const PAGE_SIZE       = 40;
+    const SEARCH_URL      = @json(route('site.products.ajaxSearch'));
+    const CATEGORY_URL    = @json(url('/ajax/products/category'));
+    const hasMoreByCat    = @json($hasMoreByCategory ?? new \stdClass());
+    const offsetByCat     = {};
+    @foreach ($categories as $cat)
+        offsetByCat[{{ $cat->id }}] = 40;
+    @endforeach
+    let mode           = 'category';   // 'category' | 'search'
+    let lastActiveCat  = currentCat;
+    let searchOffset   = 0;
+    let searchHasMore  = false;
+
+    const searchGrid   = document.getElementById('searchResultsGrid');
+    const loadMoreWrap = document.getElementById('loadMoreWrap');
+    const loadMoreBtn  = document.getElementById('loadMoreBtn');
 
     function filter() {
         const q = currentQuery.toLowerCase().trim();
@@ -524,14 +553,12 @@
         });
     }
 
-    // Category click
+    // Category click — clears the search input + enters category mode
     document.querySelectorAll('.category-btn').forEach(btn => {
         btn.addEventListener('click', () => {
-            document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentCat = btn.dataset.cat;
-            if (currentCat === 'grocery') { showGrocery(true); }
-            else { showGrocery(false); filter(); }
+            if (search.value) search.value = '';
+            currentQuery = '';
+            enterCategoryMode(btn.dataset.cat);
         });
     });
 
@@ -609,15 +636,144 @@
     // Initial load: render any grocery items already in cart
     renderGroceryList(@json(app(\App\Services\CartService::class)->groceryItems()));
 
-    // Search
+    /* ===== Search + Load more helpers ===== */
+
+    function activateTab(catId) {
+        document.querySelectorAll('.category-btn').forEach(b => {
+            b.classList.toggle('active', String(b.dataset.cat) === String(catId));
+        });
+    }
+
+    function deactivateAllTabs() {
+        document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+    }
+
+    function setLoadMore() {
+        let show = false;
+        if (mode === 'category') {
+            show = !!hasMoreByCat[currentCat] && currentCat !== 'grocery' && currentCat !== '';
+        } else if (mode === 'search') {
+            show = searchHasMore;
+        }
+        loadMoreWrap.style.display = show ? '' : 'none';
+    }
+
+    function enterCategoryMode(catId) {
+        mode = 'category';
+        currentCat = catId;
+        if (catId && catId !== 'grocery') lastActiveCat = catId;
+        activateTab(catId);
+        searchGrid.style.display = 'none';
+        searchGrid.innerHTML = '';
+        if (catId === 'grocery') {
+            showGrocery(true);
+        } else {
+            showGrocery(false);
+            filter();
+        }
+        setLoadMore();
+    }
+
+    function enterSearchMode() {
+        mode = 'search';
+        deactivateAllTabs();
+        showGrocery(false);
+        grid.style.display = 'none';
+        searchGrid.style.display = '';
+        setLoadMore();
+    }
+
+    async function runSearch(query, append) {
+        if (!append) {
+            searchOffset = 0;
+            searchGrid.innerHTML = '<div class="no-results" style="opacity:.7;"><i class="fa-solid fa-spinner fa-spin d-block"></i>Searching…</div>';
+        }
+        try {
+            const url = SEARCH_URL + '?q=' + encodeURIComponent(query) + '&offset=' + searchOffset;
+            const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            const data = await res.json();
+
+            if (!append) searchGrid.innerHTML = '';
+
+            if (data.html && data.html.length) {
+                const tmp = document.createElement('div');
+                tmp.innerHTML = data.html;
+                while (tmp.firstChild) searchGrid.appendChild(tmp.firstChild);
+            }
+
+            searchOffset += (data.count || 0);
+            searchHasMore = !!data.hasMore;
+
+            if (!append && (data.count || 0) === 0) {
+                searchGrid.innerHTML = '<div class="no-results"><i class="fa-regular fa-face-frown d-block"></i>No products match your search.</div>';
+            }
+        } catch (e) {
+            if (!append) {
+                searchGrid.innerHTML = '<div class="no-results text-danger">Search failed. Please try again.</div>';
+            }
+            searchHasMore = false;
+        }
+        setLoadMore();
+    }
+
+    async function loadMoreCategory(catId) {
+        const offset = offsetByCat[catId] || 0;
+        try {
+            const res = await fetch(CATEGORY_URL + '/' + encodeURIComponent(catId) + '?offset=' + offset, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            const data = await res.json();
+
+            if (data.html && data.html.length) {
+                const tmp = document.createElement('div');
+                tmp.innerHTML = data.html;
+                while (tmp.firstChild) grid.appendChild(tmp.firstChild);
+            }
+
+            offsetByCat[catId] = offset + (data.count || 0);
+            hasMoreByCat[catId] = !!data.hasMore;
+            filter();
+        } catch (e) {
+            hasMoreByCat[catId] = false;
+        }
+        setLoadMore();
+    }
+
+    loadMoreBtn.addEventListener('click', async () => {
+        loadMoreBtn.disabled = true;
+        const orig = loadMoreBtn.innerHTML;
+        loadMoreBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Loading…';
+        try {
+            if (mode === 'search') {
+                await runSearch(currentQuery.trim(), true);
+            } else if (mode === 'category' && currentCat && currentCat !== 'grocery') {
+                await loadMoreCategory(currentCat);
+            }
+        } finally {
+            loadMoreBtn.innerHTML = orig;
+            loadMoreBtn.disabled = false;
+        }
+    });
+
+    // Search — typing 2+ chars searches ALL products server-side and removes
+    // active tab; clearing the input restores the last category view.
     let searchTimer;
     search.addEventListener('input', e => {
         clearTimeout(searchTimer);
         searchTimer = setTimeout(() => {
             currentQuery = e.target.value;
-            filter();
-        }, 150);
+            const q = currentQuery.trim();
+            if (q.length >= 2) {
+                enterSearchMode();
+                runSearch(q, false);
+            } else {
+                enterCategoryMode(lastActiveCat || (document.querySelector('.category-btn')?.dataset.cat) || '');
+            }
+        }, 250);
     });
+
+    // Initial Load-more visibility for the first-loaded category
+    setLoadMore();
 
     // Add to cart: on the home product grid transform Add -> qty controls, elsewhere keep quick-add
     document.addEventListener('click', async (e) => {

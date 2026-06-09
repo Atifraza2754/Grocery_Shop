@@ -24,18 +24,23 @@ class HomeController extends Controller
             ->limit(8)
             ->get();
 
-        // products keyed by category id for the tab grid
+        // products keyed by category id for the tab grid. Fetch 41 so we can
+        // tell whether a "Load more" button is needed for that category.
         $productsByCategory = [];
+        $hasMoreByCategory  = [];
         foreach ($categories as $cat) {
-            $productsByCategory[$cat->id] = Product::query()
+            $list = Product::query()
                 ->where('is_active', true)
                 ->where('category_id', $cat->id)
                 ->orderBy('sort_order')
                 ->orderBy('name')
-                ->limit(40)
+                ->limit(41)
                 ->get();
+
+            $hasMoreByCategory[$cat->id]  = $list->count() > 40;
+            $productsByCategory[$cat->id] = $list->take(40);
         }
 
-        return view('site.home', compact('categories', 'featured', 'productsByCategory'));
+        return view('site.home', compact('categories', 'featured', 'productsByCategory', 'hasMoreByCategory'));
     }
 }

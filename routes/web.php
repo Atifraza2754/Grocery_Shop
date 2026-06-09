@@ -27,6 +27,10 @@ Route::get('/',                  [HomeController::class, 'index'])->name('site.h
 
 Route::get('/products/{slug}',   [ProductController::class, 'show'])->name('site.product.show');
 
+// AJAX: home-page search across all products + per-category "Load more"
+Route::get('/ajax/products/search',              [ProductController::class, 'ajaxSearch'])->name('site.products.ajaxSearch');
+Route::get('/ajax/products/category/{category}', [ProductController::class, 'ajaxCategory'])->name('site.products.ajaxCategory');
+
 Route::get('/cart',                  [CartController::class, 'index'])->name('site.cart');
 Route::post('/cart/add',             [CartController::class, 'add'])->name('site.cart.add');
 Route::post('/cart/update',          [CartController::class, 'update'])->name('site.cart.update');

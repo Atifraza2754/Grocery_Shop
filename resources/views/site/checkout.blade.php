@@ -401,12 +401,70 @@
         });
     })();
 
-    /* Disable submit on click */
-    document.getElementById('checkoutForm').addEventListener('submit', () => {
-        const btn = document.getElementById('placeBtn');
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Placing order...';
-    });
+    /* ===== Place Order — double-click / double-submit guard =====
+       On the first click we disable the button, swap it to a spinner, and
+       set an `isSubmitting` flag. Any further clicks or Enter-key submits
+       are dropped until the page reloads with the server's response. A
+       10-second safety re-enables the button if (for any reason) the
+       browser never navigates away — so the user isn't stuck forever. */
+    (function () {
+        const form = document.getElementById('checkoutForm');
+        const btn  = document.getElementById('placeBtn');
+        if (!form || !btn) return;
+
+        const originalHtml = btn.innerHTML;
+        let isSubmitting = false;
+        let resetTimer;
+
+        function lockButton() {
+            isSubmitting = true;
+            btn.disabled = true;
+            btn.setAttribute('aria-busy', 'true');
+            btn.style.cursor = 'not-allowed';
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Placing order...';
+
+            // Safety net: if the request somehow fails silently and the page
+            // doesn't navigate, re-enable the button after 10s so the user
+            // can try again instead of being stuck.
+            clearTimeout(resetTimer);
+            resetTimer = setTimeout(unlockButton, 15000);
+        }
+
+        function unlockButton() {
+            isSubmitting = false;
+            btn.disabled = false;
+            btn.removeAttribute('aria-busy');
+            btn.style.cursor = '';
+            btn.innerHTML = originalHtml;
+        }
+
+        // Block extra clicks that arrive before the submit event runs.
+        btn.addEventListener('click', function (e) {
+            if (isSubmitting) {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                return;
+            }
+            // Don't lock yet — let the form's submit event do it so HTML5
+            // validation (required fields) can still cancel the submit.
+        }, true);
+
+        // Real lock happens here, once the browser commits to submitting.
+        form.addEventListener('submit', function (e) {
+            if (isSubmitting) {
+                // Already in flight — drop this duplicate submit completely.
+                e.preventDefault();
+                return;
+            }
+            lockButton();
+        });
+
+        // If the user navigates back to this page from bfcache, restore
+        // the button so they can submit again.
+        window.addEventListener('pageshow', function (ev) {
+            if (ev.persisted) unlockButton();
+        });
+    })();
 })();
 </script>
 @endpush
