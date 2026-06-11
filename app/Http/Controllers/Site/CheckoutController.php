@@ -90,8 +90,8 @@ class CheckoutController extends Controller
             'phone'            => 'required|string|max:20',
             'address'          => 'required|string|max:500',
             'area_id'          => 'required|integer|exists:areas,id',
-            'lat'              => 'nullable|numeric',
-            'lng'              => 'nullable|numeric',
+            'lat'              => 'required|numeric',
+            'lng'              => 'required|numeric',
             'customer_note'    => 'nullable|string|max:500',
             'payment_method'   => 'nullable|in:cod,cash,transfer,other',
         ]);

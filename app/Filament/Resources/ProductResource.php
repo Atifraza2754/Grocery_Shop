@@ -165,8 +165,7 @@ class ProductResource extends Resource
 
                                         Forms\Components\TextInput::make('qty')
                                             ->numeric()
-                                            ->default(1)
-                                            ->required()
+                                            ->nullable()
                                             ->minValue(0)
                                             ->step(0.001),
 
@@ -183,8 +182,7 @@ class ProductResource extends Resource
                                                 'ml'     => 'ml',
                                                 'l'      => 'l',
                                             ])
-                                            ->default('g')
-                                            ->required(),
+                                            ->placeholder('Select unit'),
 
                                         Forms\Components\TextInput::make('note')
                                             ->maxLength(120)

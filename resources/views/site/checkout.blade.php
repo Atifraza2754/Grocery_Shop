@@ -131,8 +131,14 @@
                             </div>
                             <div id="pickerMap" class="hidden"></div>
                             <div class="text-muted small mt-1" id="locStatus"></div>
-                            <input type="hidden" name="lat" id="latInput" value="{{ old('lat', $prefill['lat'] ?? '') }}">
-                            <input type="hidden" name="lng" id="lngInput" value="{{ old('lng', $prefill['lng'] ?? '') }}">
+                            @error('lat')
+                                <div class="small text-danger mt-1">
+                                    <i class="fa-solid fa-triangle-exclamation"></i>
+                                    Please set your location using "Use my live location" or "Pick on map".
+                                </div>
+                            @enderror
+                           <input type="hidden" name="lat" id="latInput" value="{{ old('lat') }}">
+                            <input type="hidden" name="lng" id="lngInput" value="{{ old('lng') }}">
                         </div>
                         <div class="col-12">
                             <label class="form-label">Notes for delivery (optional)</label>
@@ -382,17 +388,17 @@
                     }
                     if (data.address && addressEl) addressEl.value = data.address;
                     if ((data.customer_note || data.notes) && noteEl) noteEl.value = data.customer_note ?? data.notes ?? '';
-                    if (data.lat && data.lng) {
-                        latInput.value = (+data.lat).toFixed(7);
-                        lngInput.value = (+data.lng).toFixed(7);
-                        if (mapInstance) {
-                            if (marker) marker.remove();
-                            marker = L.marker([+data.lat, +data.lng]).addTo(mapInstance);
-                            mapInstance.setView([+data.lat, +data.lng], 15);
-                            document.getElementById('pickerMap').classList.remove('hidden');
-                            document.getElementById('mapBtnText').textContent = 'Hide map';
-                        }
-                    }
+                    // if (data.lat && data.lng) {
+                    //     latInput.value = (+data.lat).toFixed(7);
+                    //     lngInput.value = (+data.lng).toFixed(7);
+                    //     if (mapInstance) {
+                    //         if (marker) marker.remove();
+                    //         marker = L.marker([+data.lat, +data.lng]).addTo(mapInstance);
+                    //         mapInstance.setView([+data.lat, +data.lng], 15);
+                    //         document.getElementById('pickerMap').classList.remove('hidden');
+                    //         document.getElementById('mapBtnText').textContent = 'Hide map';
+                    //     }
+                    // }
                     window.GS.toast('Customer data loaded', 'success');
                 } catch (e) {
                     console.error('Customer lookup error', e);
@@ -451,14 +457,22 @@
 
         // Real lock happens here, once the browser commits to submitting.
         form.addEventListener('submit', function (e) {
-            if (isSubmitting) {
-                // Already in flight — drop this duplicate submit completely.
-                e.preventDefault();
-                return;
-            }
-            lockButton();
-        });
+    if (isSubmitting) {
+        e.preventDefault();
+        return;
+    }
 
+    // Location required check
+    if (!latInput.value || !lngInput.value) {
+        e.preventDefault();
+        const locStatus = document.getElementById('locStatus');
+        locStatus.innerHTML = '<i class="fa-solid fa-triangle-exclamation text-danger"></i> <span class="text-danger">Please set your location before placing the order.</span>';
+        locStatus.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+    }
+
+    lockButton();
+});
         // If the user navigates back to this page from bfcache, restore
         // the button so they can submit again.
         window.addEventListener('pageshow', function (ev) {
